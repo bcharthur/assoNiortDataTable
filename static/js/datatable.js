@@ -1,6 +1,10 @@
 (function (global, $) {
 
   const COLUMNS = [
+    { data:null, title:'', orderable:false, searchable:false,
+      width:'40px', className:'text-center',
+      render: () => '<button class="btn btn-sm btn-primary btn-detail"><i class="fas fa-eye"></i></button>'
+    },
     { data:'title',        title:'Titre',         className:'text-truncate' },
     { data:'category',     title:'Catégorie',     className:'text-truncate' },
     { data:'sub_category', title:'Sous‑Cat.',     className:'text-truncate' },
@@ -12,11 +16,13 @@
     { data:'mobile',       title:'Portable',      className:'text-truncate' },
     { data:'mail',         title:'Mail',          className:'text-truncate' },
     { data:'address',      title:'Adresse',       className:'text-truncate' },
-    { data:'description',  title:'Description',  className:'text-truncate' }
+    { data:'description',  title:'Description',  className:'text-truncate' },
+
   ];
 
-  const COL_WIDTHS = [ '220','120','160','130','160','140','110','110','180','250','400' ]
-    .map((w,i)=>({width:`${w}px`,targets:i}));
+  const COL_WIDTHS = [
+    '40','220','120','160','130','160','140','110','110','180','250','400'
+  ].map((w,i)=>({width:`${w}px`,targets:i}));
 
   global.buildAssosTable = function (rows, onReady) {
 

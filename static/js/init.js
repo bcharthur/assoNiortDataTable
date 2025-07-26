@@ -1,6 +1,7 @@
 $(function () {
-  const $spinner = $('#loading'),
-        $table   = $('#table-card');
+
+  const $spinner   = $('#loading'),
+        $tableCard = $('#table-card');   // ← nom correct (au lieu de $table)
 
   /* chargement JSON parallèle */
   $.when(
@@ -11,21 +12,18 @@ $(function () {
     const assos = assosResp[0];
     const stats = statsResp[0];
 
-    /* cartes indicateurs */
+    /* cartes indicateurs (crée déjà le doughnut catDoughnut) */
     buildDashCards(assos, stats);
 
-    /* DataTable : une seule création */
+    /* DataTable : création unique */
     const table = buildAssosTable(assos, () => {
-      $spinner.fadeOut(150, () => $table.fadeIn(200));
-      attachFilters(table, assos);         // ← brancher filtres ici
+      $spinner.fadeOut(150, () => $tableCard.fadeIn(200));
+      attachFilters(table, assos);   // filtres dynamiques
+      attachDetails(table);          // bouton œil + modal détail
     });
 
-    /* donut “catChart” */
-    new Chart(document.getElementById('catChart'), {
-      type: 'doughnut',
-      data: { labels: Object.keys(stats), datasets: [{ data: Object.values(stats) }] },
-      options: { plugins:{ legend:{ position:'right' } } }
-    });
+    /* plus besoin de créer un deuxième graphique sur #catChart
+       — buildDashCards gère déjà le catDoughnut — */
 
   }).fail(() => {
     $spinner.html('<p class="text-danger">Erreur de chargement.</p>');
