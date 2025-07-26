@@ -1,0 +1,71 @@
+{# Accordion Bootstrap 4 collapsé au chargement #}
+<div id="filterAccordion" class="mb-4">
+  <div class="card shadow">
+    <div class="card-header p-0" id="headingFilters">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed"
+                type="button" data-toggle="collapse"
+                data-target="#collapseFilters" aria-expanded="false"
+                aria-controls="collapseFilters">
+          <i class="fas fa-filter mr-2"></i>Filtres avancés
+        </button>
+      </h2>
+    </div>
+
+    <div id="collapseFilters" class="collapse" aria-labelledby="headingFilters"
+         data-parent="#filterAccordion">
+      <div class="card-body">
+
+        <form id="filtersForm" class="form-row">
+
+          <!-- Catégorie -->
+          <div class="form-group col-md-3">
+            <label for="filterCat">Catégorie</label>
+            <select id="filterCat" class="form-control">
+              <option value="">Toutes</option>
+              <option>Culture</option>
+              <option>Sport</option>
+              <option>Solidarité</option>
+              <option>Diversité</option>
+              <option>Enfance et jeunesse</option>
+            </select>
+          </div>
+
+          <!-- Sous‑catégorie (champ texte) -->
+          <div class="form-group col-md-3">
+            <label for="filterSub">Sous‑catégorie contient</label>
+            <input type="text" id="filterSub" class="form-control" placeholder="ex : Musique">
+          </div>
+
+          <!-- Site web présent ? -->
+          <div class="form-group col-md-3">
+            <label>Site internet</label>
+            <div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="siteRadio" id="siteAll" value="" checked>
+                <label class="form-check-label" for="siteAll">Tous</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="siteRadio" id="siteYes" value="with">
+                <label class="form-check-label" for="siteYes">Avec</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="siteRadio" id="siteNo" value="without">
+                <label class="form-check-label" for="siteNo">Sans</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bouton reset -->
+          <div class="form-group col-md-3 d-flex align-items-end">
+            <button type="reset" class="btn btn-secondary btn-sm" id="resetFilters">
+              Réinitialiser
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>

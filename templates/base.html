@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Associations Niortaises{% endblock %}</title>
+
+  <!-- SB‑Admin‑2 / Bootstrap 4 -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
+
+  <!-- DataTables core + Bootstrap 4 skin -->
+  <link rel="stylesheet"
+        href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+
+  <!-- ColResize (unofficial v1.7.x) -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/datatables.net-colresize-unofficial@1.7.2/jquery.dataTables.colResize.css">
+
+  {% block head_extra %}{% endblock %}
+</head>
+
+<style>
+/* la table adopte la grille fixe → le tbody suit la largeur des th */
+#assos-table{
+  table-layout: fixed;
+  width: 100% !important;   /* DataTables peut écraser sinon */
+}
+
+/*   cellules : pas de retour à la ligne + ellipsis   */
+#assos-table th,
+#assos-table td{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* curseur col‑resize sur l’en‑tête */
+table.dataTable thead th.dt-colresizable-hover,
+.DTCR_pointer,
+.DTCR_pointerShadow{cursor:col-resize!important;}
+
+</style>
+
+<body id="page-top">
+<div id="wrapper">
+  <!-- ===== SIDEBAR ===== -->
+  <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+      <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/">
+          <div class="sidebar-brand-icon rotate-n-15"><i class="fas fa-globe"></i></div>
+          <div class="sidebar-brand-text mx-2">AstroWeb</div>
+      </a>
+      <hr class="sidebar-divider my-0">
+      <li class="nav-item active">
+          <a class="nav-link" href="/"><i class="fas fa-fw fa-table"></i><span>Associations</span></a>
+      </li>
+      <hr class="sidebar-divider d-none d-md-block">
+      <div class="text-center d-none d-md-inline">
+          <button class="rounded-circle border-0" id="sidebarToggle"></button>
+      </div>
+  </ul>
+
+  <!-- ===== CONTENT ===== -->
+  <div id="content-wrapper" class="d-flex flex-column">
+      <div id="content">
+          <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+              <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                  <i class="fa fa-bars"></i>
+              </button>
+              <ul class="navbar-nav ml-auto">
+                  <li class="nav-item">
+                      <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                          Projet associations Niort
+                      </span>
+                  </li>
+              </ul>
+          </nav>
+
+          <div class="container-fluid">
+              {% block content %}{% endblock %}
+          </div>
+      </div>
+
+      <footer class="sticky-footer bg-white">
+          <div class="container my-auto">
+              <div class="copyright text-center my-auto">
+                  <span>&copy; 2025 AstroWeb Digital</span>
+              </div>
+          </div>
+      </footer>
+  </div>
+</div>
+
+<!-- ===== JS ===== -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<!-- ColResize (unofficial) -->
+<script src="https://cdn.jsdelivr.net/npm/datatables.net-colresize-unofficial@1.7.2/jquery.dataTables.colResize.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/datatable.js') }}"></script>
+<script src="{{ url_for('static', filename='js/filtres.js') }}"></script>
+<script src="{{ url_for('static', filename='js/stats-cards.js') }}"></script>
+<script src="{{ url_for('static', filename='js/init.js') }}"></script>
+
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
