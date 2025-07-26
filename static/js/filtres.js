@@ -1,57 +1,51 @@
 (function (global, $) {
 
-  let dt   = null;   // instance DataTable
-  let rows = [];     // données brutes
+  let dt = null;
+  let rows = [];
 
-  /* valeurs uniques triées */
   const uniqSorted = arr =>
-    [...new Set(arr)].filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr'));
+    [...new Set(arr)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
 
-  /* remplit <select> Catégorie & Sous‑catégorie */
   function populateSelects() {
     const $cat = $('#filterCat').empty().append('<option value="">Toutes</option>');
     const $sub = $('#filterSub').empty().append('<option value="">Toutes</option>');
-
     uniqSorted(rows.map(r => r.category)).forEach(v => $cat.append(`<option>${v}</option>`));
     uniqSorted(rows.map(r => r.sub_category)).forEach(v => $sub.append(`<option>${v}</option>`));
   }
 
-  /* applique les filtres et redessine */
   function apply() {
     if (!dt) return;
+    const esc = $.fn.dataTable.util.escapeRegex;
 
-    const regexEscape = $.fn.dataTable.util.escapeRegex;
+    // indexes après la colonne "œil"
+    const COL_CAT  = 2;
+    const COL_SUB  = 3;
+    const COL_SITE = 4;
 
-    // Catégorie (col 1)
     const cat = $('#filterCat').val();
-    dt.column(1).search(cat ? `^${regexEscape(cat)}$` : '', true, false);
+    dt.column(COL_CAT).search(cat ? `^${esc(cat)}$` : '', true, false);
 
-    // Sous‑catégorie (col 2)
     const sub = $('#filterSub').val();
-    dt.column(2).search(sub ? `^${regexEscape(sub)}$` : '', true, false);
+    dt.column(COL_SUB).search(sub ? `^${esc(sub)}$` : '', true, false);
 
-    // Site internet (col 3)
     switch ($('input[name="siteRadio"]:checked').val()) {
-      case 'with':    dt.column(3).search('.+', true, false);  break; // non vide
-      case 'without': dt.column(3).search('^$', true, false);  break; // vide
-      default:        dt.column(3).search('');
+      case 'with':    dt.column(COL_SITE).search('.+', true, false);  break;  // non vide
+      case 'without': dt.column(COL_SITE).search('^$', true, false);  break;  // vide
+      default:        dt.column(COL_SITE).search('');
     }
-
     dt.draw(false);
   }
 
-  /* public : branché depuis init.js */
   global.attachFilters = function (table, rawRows) {
     dt   = table;
     rows = rawRows;
     populateSelects();
 
-    // listeners (namespace .flt)
     $('#filterCat, #filterSub').off('.flt').on('change.flt', apply);
     $('input[name="siteRadio"]').off('.flt').on('change.flt', apply);
-    $('#resetFilters').off('.flt').on('click.flt', () => setTimeout(apply, 0));
+    $('#resetFilters').off('.flt').on('click.flt', () => setTimeout(apply,0));
 
-    apply();   // premier rendu
+    apply();
   };
 
 })(window, jQuery);
