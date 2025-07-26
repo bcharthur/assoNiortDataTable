@@ -1,31 +1,34 @@
 (function (global, $) {
 
   let dt   = null;   // instance DataTable
-  let data = [];     // dataset brut
+  let rows = [];     // données brutes
 
   /* valeurs uniques triées */
-  const uniqSorted = list =>
-    [...new Set(list)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
+  const uniqSorted = arr =>
+    [...new Set(arr)].filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr'));
 
-  /* construit la liste Sous‑catégories */
-  function fillSubOptions() {
-    const $sel = $('#filterSub');
-    $sel.empty().append('<option value="">Toutes</option>');
-    uniqSorted(data.map(r => r.sub_category))
-      .forEach(v => $sel.append(`<option>${v}</option>`));
+  /* remplit <select> Catégorie & Sous‑catégorie */
+  function populateSelects() {
+    const $cat = $('#filterCat').empty().append('<option value="">Toutes</option>');
+    const $sub = $('#filterSub').empty().append('<option value="">Toutes</option>');
+
+    uniqSorted(rows.map(r => r.category)).forEach(v => $cat.append(`<option>${v}</option>`));
+    uniqSorted(rows.map(r => r.sub_category)).forEach(v => $sub.append(`<option>${v}</option>`));
   }
 
   /* applique les filtres et redessine */
   function apply() {
     if (!dt) return;
 
+    const regexEscape = $.fn.dataTable.util.escapeRegex;
+
     // Catégorie (col 1)
     const cat = $('#filterCat').val();
-    dt.column(1).search(cat ? `^${cat}$` : '', true, false);
+    dt.column(1).search(cat ? `^${regexEscape(cat)}$` : '', true, false);
 
     // Sous‑catégorie (col 2)
     const sub = $('#filterSub').val();
-    dt.column(2).search(sub ? `^${sub}$` : '', true, false);
+    dt.column(2).search(sub ? `^${regexEscape(sub)}$` : '', true, false);
 
     // Site internet (col 3)
     switch ($('input[name="siteRadio"]:checked').val()) {
@@ -37,18 +40,18 @@
     dt.draw(false);
   }
 
-  /* public : appelé depuis init.js */
+  /* public : branché depuis init.js */
   global.attachFilters = function (table, rawRows) {
     dt   = table;
-    data = rawRows;
-    fillSubOptions();
+    rows = rawRows;
+    populateSelects();
 
-    // listeners (namespace .flt pour éviter doublons)
+    // listeners (namespace .flt)
     $('#filterCat, #filterSub').off('.flt').on('change.flt', apply);
     $('input[name="siteRadio"]').off('.flt').on('change.flt', apply);
     $('#resetFilters').off('.flt').on('click.flt', () => setTimeout(apply, 0));
 
-    apply();               // première application
+    apply();   // premier rendu
   };
 
 })(window, jQuery);
