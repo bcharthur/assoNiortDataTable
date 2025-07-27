@@ -1,21 +1,17 @@
 {# Cartes KPI + carte Leaflet à droite #}
 <div class="row mb-3">
 
-<!-- Répartition (doughnut) -->
-<div class="col-xl-3 col-md-4 col-sm-6 mb-3">
-  <div class="card border-left-primary shadow-sm text-center p-3">
-    <h6 class="text-xs font-weight-bold text-primary text-uppercase mb-2">
-      Répartition
-    </h6>
-
-    <!-- conteneur flex pour centrer le canvas -->
-    <div class="d-flex justify-content-center">
-      <canvas id="catDoughnut"
-              width="120" height="120"
-              class="mx-auto"></canvas>
+  <!-- Répartition (doughnut) -->
+  <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+    <div class="card border-left-primary shadow-sm text-center p-3">
+      <h6 class="text-xs font-weight-bold text-primary text-uppercase mb-2">
+        Répartition
+      </h6>
+      <div class="d-flex justify-content-center">
+        <canvas id="catDoughnut" width="120" height="120" class="mx-auto"></canvas>
+      </div>
     </div>
   </div>
-</div>
 
   <!-- Total + Sans site empilés -->
   <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
@@ -26,7 +22,6 @@
         </div>
         <div id="countTotal" class="h4 font-weight-bold mb-0">0</div>
       </div>
-
       <div class="card border-left-warning shadow-sm py-3 text-center flex-fill">
         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
           Sans site
@@ -39,11 +34,27 @@
   <!-- Carte Leaflet -->
   <div class="col-xl-6 col-md-12 mb-3">
     <div class="card shadow-sm h-100">
-      <div class="card-header py-2">
+      <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Carte des associations</h6>
+        <button id="btnDownloadMap" class="btn btn-sm btn-outline-secondary" title="Télécharger la carte PNG">
+          <i class="fas fa-download"></i>
+        </button>
       </div>
+
       <div class="card-body p-0" style="height:320px;">
-        <div id="niortMap" style="height:100%;"></div>
+        <div id="niortMap" class="position-relative h-100">
+          <!-- Loader overlay -->
+          <div id="mapLoader"
+               class="d-flex flex-column align-items-center justify-content-center
+                      position-absolute w-100 h-100 bg-white"
+               style="opacity:.9; z-index:999;">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <div class="progress w-75 mb-1">
+              <div id="mapProgress" class="progress-bar" style="width:0%"></div>
+            </div>
+            <small id="mapProgressTxt" class="text-muted">0 / 0</small>
+          </div>
+        </div>
       </div>
     </div>
   </div>

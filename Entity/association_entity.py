@@ -12,6 +12,8 @@ class Association:
         self.mail = mail
         self.address = address
         self.description = description
+        lat: float
+        lon: float
 
     def to_dict(self):
         return self.__dict__
