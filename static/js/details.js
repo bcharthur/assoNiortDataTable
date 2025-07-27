@@ -17,9 +17,9 @@
             <li class="list-group-item"><strong>Sous‑catégorie :</strong> ${data.sub_category}</li>
             <li class="list-group-item"><strong>Responsable :</strong> ${data.manager}</li>
             <li class="list-group-item"><strong>Contact :</strong> ${data.contact}</li>
-            <li class="list-group-item"><strong>Téléphone :</strong> ${data.phone || ''}</li>
-            <li class="list-group-item"><strong>Portable :</strong> ${data.mobile || ''}</li>
-            <li class="list-group-item"><strong>Mail :</strong> ${data.mail || ''}</li>
+            <li class="list-group-item"><strong>Téléphone :</strong> ${data.phone || 'Pas de téléphone'}</li>
+            <li class="list-group-item"><strong>Portable :</strong> ${data.mobile || 'Pas de mobile'}</li>
+            <li class="list-group-item"><strong>Mail :</strong> ${data.mail || 'Pas de mail'}</li>
             <li class="list-group-item"><strong>Adresse :</strong> ${data.address}</li>
             <li class="list-group-item"><strong>Description :</strong><br>${data.description}</li>
             <li class="list-group-item"><strong>Site :</strong> ${
