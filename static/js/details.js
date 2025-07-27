@@ -23,7 +23,7 @@
             <li class="list-group-item"><strong>Adresse :</strong> ${data.address}</li>
             <li class="list-group-item"><strong>Description :</strong><br>${data.description}</li>
             <li class="list-group-item"><strong>Site :</strong> ${
-              data.website ? `<a href="${data.website}" target="_blank">${data.website}</a>` : ''
+              data.website ? `<a href="${data.website}" target="_blank">${data.website}</a>` : 'Pas de site internet'
             }</li>
           </ul>
         `);
