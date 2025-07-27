@@ -21,7 +21,14 @@
         return parts.join(' / ');
       }
     },
-    { data:'mail',         title:'Mail',          className:'text-truncate' },
+     /* Mail sans “mailto:” */
+    { data:'mail', title:'Mail', className:'text-truncate',
+      render:d => {
+        if (!d) return '';
+        const m = d.replace(/^mailto:/i, '');
+        return `<a href="mailto:${m}">${m}</a>`;
+      }
+    },
     { data:'address',      title:'Adresse',       className:'text-truncate' },
     { data:'description',  title:'Description',  className:'text-truncate' },
 
