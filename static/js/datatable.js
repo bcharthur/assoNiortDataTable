@@ -12,8 +12,15 @@
       render:d => d ? `<a href="${d}" target="_blank">lien</a>` : '' },
     { data:'manager',      title:'Responsable',   className:'text-truncate' },
     { data:'contact',      title:'Contact',       className:'text-truncate' },
-    { data:'phone',        title:'Tél.',          className:'text-truncate' },
-    { data:'mobile',       title:'Portable',      className:'text-truncate' },
+    /* — nouvelle colonne téléphones — */
+    { data:null, title:'Téléphones', className:'text-truncate',
+      render:d => {
+        const parts = [];
+        if (d.phone)   parts.push(d.phone);
+        if (d.mobile)  parts.push(d.mobile);
+        return parts.join(' / ');
+      }
+    },
     { data:'mail',         title:'Mail',          className:'text-truncate' },
     { data:'address',      title:'Adresse',       className:'text-truncate' },
     { data:'description',  title:'Description',  className:'text-truncate' },
@@ -21,7 +28,7 @@
   ];
 
   const COL_WIDTHS = [
-    '40','220','120','160','130','160','140','110','110','180','250','400'
+    '40','220','120','160','40','160','140','110','180','250','400'
   ].map((w,i)=>({width:`${w}px`,targets:i}));
 
   global.buildAssosTable = function (rows, onReady) {
