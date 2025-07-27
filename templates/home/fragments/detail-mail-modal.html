@@ -1,0 +1,40 @@
+<!-- Modal e‑mail -->
+<div class="modal fade" id="mailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Envoyer un mail à&nbsp;<span id="mailAssoName"></span>
+        </h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-2"><strong>Destinataire&nbsp;:</strong>
+          <span id="mailTo"></span>
+        </p>
+
+        <div class="form-group">
+          <label>Sujet</label>
+          <input id="mailSubject" class="form-control"/>
+        </div>
+
+        <div class="form-group">
+          <label>Corps du message</label>
+          <textarea id="mailBody" class="form-control" rows="10"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <a id="mailtoLink" class="btn btn-primary" target="_blank">
+          Ouvrir dans votre client mail
+        </a>
+        <button type="button" class="btn btn-secondary"
+                data-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
