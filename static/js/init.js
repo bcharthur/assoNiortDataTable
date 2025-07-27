@@ -20,6 +20,8 @@ $(function () {
       $spinner.fadeOut(150, () => $tableCard.fadeIn(200));
       attachFilters(table, assos);   // filtres dynamiques
       attachDetails(table);          // bouton œil + modal détail
+      plotAssociations(assos);   // place les marqueurs
+
     });
 
     /* plus besoin de créer un deuxième graphique sur #catChart

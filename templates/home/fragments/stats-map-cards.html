@@ -1,0 +1,51 @@
+{# Cartes KPI + carte Leaflet à droite #}
+<div class="row mb-3">
+
+<!-- Répartition (doughnut) -->
+<div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+  <div class="card border-left-primary shadow-sm text-center p-3">
+    <h6 class="text-xs font-weight-bold text-primary text-uppercase mb-2">
+      Répartition
+    </h6>
+
+    <!-- conteneur flex pour centrer le canvas -->
+    <div class="d-flex justify-content-center">
+      <canvas id="catDoughnut"
+              width="120" height="120"
+              class="mx-auto"></canvas>
+    </div>
+  </div>
+</div>
+
+  <!-- Total + Sans site empilés -->
+  <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+    <div class="d-flex flex-column h-100">
+      <div class="card border-left-success shadow-sm py-3 text-center mb-2 flex-fill">
+        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+          Total asso
+        </div>
+        <div id="countTotal" class="h4 font-weight-bold mb-0">0</div>
+      </div>
+
+      <div class="card border-left-warning shadow-sm py-3 text-center flex-fill">
+        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+          Sans site
+        </div>
+        <div id="countNoSite" class="h4 font-weight-bold mb-0">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carte Leaflet -->
+  <div class="col-xl-6 col-md-12 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h6 class="m-0 font-weight-bold text-primary">Carte des associations</h6>
+      </div>
+      <div class="card-body p-0" style="height:320px;">
+        <div id="niortMap" style="height:100%;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
