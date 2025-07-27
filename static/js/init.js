@@ -1,9 +1,10 @@
 $(function () {
-  const $spinner   = $('#loading'),
-        $tableCard = $('#table-card'),
-        $chartCard = $('#chart-card');
 
-   $.when(
+  const $spinner   = $('#loading'),
+        $tableCard = $('#table-card');   // ← nom correct (au lieu de $table)
+
+  /* chargement JSON parallèle */
+  $.when(
     $.getJSON('/api/assos'),
     $.getJSON('/api/stats/category')
   ).done((assosResp, statsResp) => {
@@ -11,34 +12,28 @@ $(function () {
     const assos = assosResp[0];
     const stats = statsResp[0];
 
-    /* === cartes indicateurs === */
+    /* cartes indicateurs (crée déjà le doughnut catDoughnut) */
     buildDashCards(assos, stats);
 
-    /* === DataTable === */
-    buildAssosTable(assos, () => {
-      $spinner.fadeOut(150, () => {
-        $tableCard.fadeIn(200);
-      });
-    });
-
+    /* DataTable : création unique */
     const table = buildAssosTable(assos, () => {
-  $spinner.fadeOut(150, () => $tableCard.fadeIn(200));
-});
-attachFilters(table);   // ← connecte les filtres à la DataTable
+      $spinner.fadeOut(150, () => $tableCard.fadeIn(200));
+      attachFilters(table, assos);   // filtres dynamiques
+      attachDetails(table);          // bouton œil + modal détail
+      localStorage.setItem('assosRaw', JSON.stringify(assos));
+      plotAssociations(assos);   // place les marqueurs
 
-    /* donut */
-    new Chart(document.getElementById('catChart'), {
-      type: 'doughnut',
-      data: { labels: Object.keys(stats), datasets: [{ data: Object.values(stats) }] },
-      options: { plugins: { legend: { position: 'right' } } }
     });
+
+    /* plus besoin de créer un deuxième graphique sur #catChart
+       — buildDashCards gère déjà le catDoughnut — */
 
   }).fail(() => {
     $spinner.html('<p class="text-danger">Erreur de chargement.</p>');
   });
 
-  /* ---- réajuste au resize & au toggle sidebar ---- */
-$(window).on('resize', adjustVisibleTables);
-$('#sidebarToggle, #sidebarToggleTop').on('click', () => setTimeout(adjustVisibleTables, 300));
-
+  /* ré‑ajuste si resize ou toggle sidebar */
+  $(window).on('resize', adjustVisibleTables);
+  $('#sidebarToggle, #sidebarToggleTop')
+    .on('click', () => setTimeout(adjustVisibleTables, 300));
 });

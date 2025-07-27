@@ -1,4 +1,4 @@
-{# Accordion Bootstrap 4 collapsé au chargement #}
+{# Accordion filtres #}
 <div id="filterAccordion" class="mb-4">
   <div class="card shadow">
     <div class="card-header p-0" id="headingFilters">
@@ -15,7 +15,6 @@
     <div id="collapseFilters" class="collapse" aria-labelledby="headingFilters"
          data-parent="#filterAccordion">
       <div class="card-body">
-
         <form id="filtersForm" class="form-row">
 
           <!-- Catégorie -->
@@ -31,40 +30,38 @@
             </select>
           </div>
 
-          <!-- Sous‑catégorie (champ texte) -->
+          <!-- Sous‑catégorie : options injectées dynamiquement -->
           <div class="form-group col-md-3">
-            <label for="filterSub">Sous‑catégorie contient</label>
-            <input type="text" id="filterSub" class="form-control" placeholder="ex : Musique">
+            <label for="filterSub">Sous‑catégorie</label>
+            <select id="filterSub" class="form-control">
+              <option value="">Toutes</option>
+            </select>
           </div>
 
           <!-- Site web présent ? -->
           <div class="form-group col-md-3">
-            <label>Site internet</label>
-            <div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="siteRadio" id="siteAll" value="" checked>
-                <label class="form-check-label" for="siteAll">Tous</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="siteRadio" id="siteYes" value="with">
-                <label class="form-check-label" for="siteYes">Avec</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="siteRadio" id="siteNo" value="without">
-                <label class="form-check-label" for="siteNo">Sans</label>
-              </div>
+            <label>Site internet</label><br>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="siteRadio" value="" checked>
+              <label class="form-check-label">Tous</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="siteRadio" value="with">
+              <label class="form-check-label">Avec</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="siteRadio" value="without">
+              <label class="form-check-label">Sans</label>
             </div>
           </div>
 
-          <!-- Bouton reset -->
+          <!-- Reset -->
           <div class="form-group col-md-3 d-flex align-items-end">
             <button type="reset" class="btn btn-secondary btn-sm" id="resetFilters">
               Réinitialiser
             </button>
           </div>
-
         </form>
-
       </div>
     </div>
   </div>
