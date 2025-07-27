@@ -20,6 +20,7 @@ $(function () {
       $spinner.fadeOut(150, () => $tableCard.fadeIn(200));
       attachFilters(table, assos);   // filtres dynamiques
       attachDetails(table);          // bouton œil + modal détail
+      attachMail(table);
       localStorage.setItem('assosRaw', JSON.stringify(assos));
       plotAssociations(assos);   // place les marqueurs
 

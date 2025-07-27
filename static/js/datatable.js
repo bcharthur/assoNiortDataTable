@@ -5,6 +5,12 @@
       width:'40px', className:'text-center',
       render: () => '<button class="btn btn-sm btn-primary btn-detail"><i class="fas fa-eye"></i></button>'
     },
+      /* bouton mail */
+{ data:null, title:'', width:'40px', orderable:false, searchable:false,
+  className:'text-center',
+  render: () =>
+    '<button class="btn btn-sm btn-info btn-mail"><i class="fas fa-envelope"></i></button>'
+},
     { data:'title',        title:'Titre',         className:'text-truncate' },
     { data:'category',     title:'Catégorie',     className:'text-truncate' },
     { data:'sub_category', title:'Sous‑Cat.',     className:'text-truncate' },
@@ -35,7 +41,7 @@
   ];
 
   const COL_WIDTHS = [
-    '40','220','120','160','40','160','140','110','180','250','400'
+    '40','40','220','120','160','40','160','140','110','180','250','400'
   ].map((w,i)=>({width:`${w}px`,targets:i}));
 
   global.buildAssosTable = function (rows, onReady) {
