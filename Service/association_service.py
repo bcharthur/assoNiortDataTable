@@ -1,15 +1,25 @@
-from Repository.association_repository import AssociationRepository
+# Service/association_service.py
 import pandas as pd
 
+from Repository.association_repository import AssociationRepository
+
 class AssociationService:
-    repo = AssociationRepository()
+    def __init__(self):
+        self.repo = AssociationRepository()
 
-    def get_all(self, refresh=False):
-        return self.repo.fetch_all(force=refresh)
+    # ---------------------------
+    # Data access
+    # ---------------------------
+    def get_all(self, refresh: bool = False):
+        return self.repo.ensure_populated(force=refresh)
 
+    # ---------------------------
+    # Stats
+    # ---------------------------
     def stats_by_category(self):
-        df = pd.DataFrame([a.to_dict() for a in self.repo.fetch_all()])
-        if df.empty or "category" not in df.columns:
+        data = [a.to_dict() for a in self.repo.ensure_populated()]
+        if not data:
             return {}
-        return df["category"].value_counts().to_dict()
 
+        df = pd.DataFrame(data)
+        return df["category"].value_counts().to_dict()
