@@ -1,51 +1,79 @@
+/* global buildAssosTable, adjustVisibleTables */
 (function (global, $) {
+  let dt         = null;    // instance DataTable
+  let rows       = [];      // lignes courantes (après filtre)
+  let masterRows = [];      // toutes les lignes (chargement initial)
 
-  let dt = null;
-  let rows = [];
+  /* ──────────────────────────────────────────────────────────── */
+  function fetchRows(params = {}, cb) {
+    $.getJSON("/api/assos", params, data => {
+      rows = data;
 
-  const uniqSorted = arr =>
-    [...new Set(arr)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
+      if (dt) {
+        dt.clear().rows.add(rows).draw(false);
+      } else {
+        dt = buildAssosTable(rows, adjustVisibleTables);
+      }
 
+      if ($.isEmptyObject(params) && masterRows.length === 0) {
+        // premier load sans filtre → on garde la référence complète
+        masterRows = rows.slice();
+      }
+      if (cb) cb();
+    });
+  }
+
+  /* ─────────────────── listes déroulantes ───────────────────── */
   function populateSelects() {
-    const $cat = $('#filterCat').empty().append('<option value="">Toutes</option>');
-    const $sub = $('#filterSub').empty().append('<option value="">Toutes</option>');
-    uniqSorted(rows.map(r => r.category)).forEach(v => $cat.append(`<option>${v}</option>`));
-    uniqSorted(rows.map(r => r.sub_category)).forEach(v => $sub.append(`<option>${v}</option>`));
+    const uniq = arr =>
+      [...new Set(arr)]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "fr"));
+
+    // on conserve la sélection courante
+    const curCat = $("#filterCat").val() || "";
+    const curSub = $("#filterSub").val() || "";
+
+    const $cat = $("#filterCat").empty().append('<option value="">Toutes</option>');
+    const $sub = $("#filterSub").empty().append('<option value="">Toutes</option>');
+
+    uniq(masterRows.map(r => r.category)).forEach(v => $cat.append(`<option>${v}</option>`));
+    uniq(masterRows.map(r => r.sub_category)).forEach(v => $sub.append(`<option>${v}</option>`));
+
+    // on ré‑applique la valeur si elle existe toujours
+    $cat.val(curCat);
+    $sub.val(curSub);
   }
 
-  function apply() {
-    if (!dt) return;
-    const esc = $.fn.dataTable.util.escapeRegex;
+  /* ─────────────────── application des filtres ───────────────── */
+  function applyFilters() {
+    const params = {};
+    const cat  = $("#filterCat").val();
+    const sub  = $("#filterSub").val();
+    const site = $("input[name='siteRadio']:checked").val();
 
-    // indexes après la colonne "œil"
-    const COL_CAT  = 2;
-    const COL_SUB  = 3;
-    const COL_SITE = 4;
+    if (cat)  params.cat  = cat;
+    if (sub)  params.sub  = sub;
+    if (site) params.site = site;
 
-    const cat = $('#filterCat').val();
-    dt.column(COL_CAT).search(cat ? `^${esc(cat)}$` : '', true, false);
-
-    const sub = $('#filterSub').val();
-    dt.column(COL_SUB).search(sub ? `^${esc(sub)}$` : '', true, false);
-
-    switch ($('input[name="siteRadio"]:checked').val()) {
-      case 'with':    dt.column(COL_SITE).search('.+', true, false);  break;  // non vide
-      case 'without': dt.column(COL_SITE).search('^$', true, false);  break;  // vide
-      default:        dt.column(COL_SITE).search('');
-    }
-    dt.draw(false);
+    fetchRows(params);          // pas besoin de repopuler les selects ici
   }
 
-  global.attachFilters = function (table, rawRows) {
-    dt   = table;
-    rows = rawRows;
-    populateSelects();
+  /* ────────────────────── Export global ─────────────────────── */
+  global.initAssos = function () {
+    // premier chargement (sans filtre)
+    fetchRows({}, () => {
+      populateSelects();
 
-    $('#filterCat, #filterSub').off('.flt').on('change.flt', apply);
-    $('input[name="siteRadio"]').off('.flt').on('change.flt', apply);
-    $('#resetFilters').off('.flt').on('click.flt', () => setTimeout(apply,0));
+      // écouteurs UI
+      $("#filterCat,#filterSub").on("change.flt", applyFilters);
+      $("input[name='siteRadio']").on("change.flt", applyFilters);
 
-    apply();
+      $("#resetFilters").on("click.flt", () => {
+        $("#filterCat,#filterSub").val("");
+        $("#siteAll").prop("checked", true);
+        applyFilters();
+      });
+    });
   };
-
 })(window, jQuery);

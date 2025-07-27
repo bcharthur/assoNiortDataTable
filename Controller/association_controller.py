@@ -13,9 +13,20 @@ def index():
 
 @bp.route("/api/assos")
 def api_assos():
+    """Retourne les assos (filtrées ou non)."""
     refresh = request.args.get("refresh") == "1"
-    data = [a.to_dict() for a in _service.get_all(refresh)]
-    return jsonify(data)
+
+    # paramètres de filtre  
+    cat  = request.args.get("cat") or None
+    sub  = request.args.get("sub") or None
+    site = request.args.get("site") or None   # '', 'with', 'without'
+
+    if cat or sub or site:
+        assos = _service.get_filtered(cat, sub, site)
+    else:
+        assos = _service.get_all(refresh)
+
+    return jsonify([a.to_dict() for a in assos])
 
 
 @bp.route("/api/stats/category")
