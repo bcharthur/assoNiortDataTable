@@ -10,6 +10,7 @@ import os
 from flask import Flask, current_app
 from sqlalchemy.exc import SQLAlchemyError
 
+from Controller.geocode_controller import geo_bp
 from extensions import db, migrate
 from Controller.association_controller import bp as home_bp
 from Repository.association_repository import AssociationRepository
@@ -33,6 +34,7 @@ def create_app() -> Flask:
 
     # ─── Blueprints ───────────────────────────────────────────────────────
     app.register_blueprint(home_bp)
+    app.register_blueprint(geo_bp)
 
     # ─── Sync data au 1er appel ───────────────────────────────────────────
     @app.before_request
