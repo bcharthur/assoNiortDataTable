@@ -11,6 +11,7 @@ eventlet.monkey_patch()
 import os
 from flask import Flask, current_app
 from sqlalchemy.exc import SQLAlchemyError
+from flask_socketio import SocketIO          # ← AJOUT ICI ✅
 
 from Controller.dashboard_controller import dashboard_bp
 from Controller.geocode_controller import geo_bp
