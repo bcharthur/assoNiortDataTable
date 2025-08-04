@@ -1,35 +1,53 @@
-# docker-compose.yml  (sans clé version)
+# /srv/apps/assoNiortDataTable/docker-compose.yml
+version: "3.8"
+
 services:
   db:
     image: postgres:16
+    container_name: assoniort_db
     environment:
       POSTGRES_DB: astroweb
       POSTGRES_USER: astroweb
       POSTGRES_PASSWORD: astroweb
-    ports: ["5432:5432"]
-    volumes: ["pg-data:/var/lib/postgresql/data"]
+    volumes:
+      - pg-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 3s
       retries: 5
+    networks: [stack_default]
 
   web:
     build: .
+    container_name: assoniort_app
     depends_on:
       db:
         condition: service_healthy
+    environment:            # ← facultatif si vous laissez -U astroweb
+      POSTGRES_USER: astroweb
     command: >
-      bash -c "
-        echo '⏳ waiting for postgres...' &&
-        until pg_isready -h db -U astroweb; do sleep 1; done &&
-        echo '✅ postgres is ready' &&
+      bash -c '
+        echo "⏳ waiting for postgres...";
+        until pg_isready -h db -U astroweb; do sleep 1; done;
+        echo "✅ postgres is ready";
 
-        flask db upgrade &&
+        if [ ! -d migrations ]; then
+          flask db init && flask db migrate -m "init";
+        fi;
+
+        flask db upgrade;
         exec flask run --host=0.0.0.0
-      "
-    volumes: [".:/app"]
-    ports: ["5000:5000"]
+      '
+    volumes:
+      - .:/app
+    expose:
+      - "5000"
     env_file: .env
+    networks: [stack_default]
+
+networks:
+  stack_default:
+    external: true          # réseau créé par ta stack principale
 
 volumes:
   pg-data:
