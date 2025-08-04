@@ -10,3 +10,4 @@ docker
 eventlet
 paramiko
 psutil
+flask_socketio
