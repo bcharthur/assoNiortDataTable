@@ -5,12 +5,16 @@ app.py – point d’entrée Flask
 • Enregistre les blueprints
 • Lance une synchronisation automatique ≈ assos_cache.json d’origine
 """
+import eventlet
+eventlet.monkey_patch()
 
 import os
 from flask import Flask, current_app
 from sqlalchemy.exc import SQLAlchemyError
 
+from Controller.dashboard_controller import dashboard_bp
 from Controller.geocode_controller import geo_bp
+from Service.docker_service import start_metrics_task
 from extensions import db, migrate
 from Controller.association_controller import bp as home_bp
 from Repository.association_repository import AssociationRepository
@@ -35,6 +39,15 @@ def create_app() -> Flask:
     # ─── Blueprints ───────────────────────────────────────────────────────
     app.register_blueprint(home_bp)
     app.register_blueprint(geo_bp)
+    app.register_blueprint(dashboard_bp)
+
+    socketio = SocketIO(app,
+                        async_mode='eventlet',
+                        cors_allowed_origins='*',
+                        logger=True, engineio_logger=False)
+
+    # ▶️  lance la boucle qui émet les stats toutes les 2 s
+    start_metrics_task(socketio)
 
     # ─── Sync data au 1er appel ───────────────────────────────────────────
     @app.before_request
