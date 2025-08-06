@@ -1,25 +1,19 @@
-# Dockerfile
+# Dockerfile – image de l’application Flask
 FROM python:3.12-slim
 
-# Dépendances système pour psycopg2 + client postgres (pg_isready)
+# libs système pour psycopg2 & psutil
 RUN apt-get update \
- && apt-get install -y gcc libpq-dev postgresql-client \
+ && apt-get install -y build-essential libpq-dev procps \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# On copie le code à la fin (cache build)
 COPY . .
 
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=development
-EXPOSE 5000
+ENV PYTHONUNBUFFERED=1
+ENV FLASK_ENV=production
 
-# Petit script d’attente Postgres
-CMD bash -c '\
-  echo "⏳ waiting for postgres..." ; \
-  until pg_isready -h db -p 5432 -U astroweb ; do sleep 1 ; done ; \
-  echo "✅ postgres is ready" ; \
-  flask db upgrade ; \
-  exec flask run --host=0.0.0.0'
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "app:app"]

@@ -1,24 +1,16 @@
-"""
-app.py – point d’entrée Flask
-─────────────────────────────
-• Configure Flask, SQLAlchemy, Migrate
-• Enregistre les blueprints
-• Lance une synchronisation automatique ≈ assos_cache.json d’origine
-"""
-import eventlet
-eventlet.monkey_patch()
-
 import os
+
 from flask import Flask, current_app
 from sqlalchemy.exc import SQLAlchemyError
-from flask_socketio import SocketIO          # ← AJOUT ICI ✅
-
-from Controller.dashboard_controller import dashboard_bp
-from Controller.geocode_controller import geo_bp
-from Service.docker_service import start_metrics_task
 from extensions import db, migrate
+
+# Blueprints / services
 from Controller.association_controller import bp as home_bp
+from Controller.geocode_controller import geo_bp
+from Controller.dashboard_controller import dashboard_bp
+from Controller.metric_controller import metrics_bp
 from Repository.association_repository import AssociationRepository
+# from Service.docker_service import start_metrics_task
 
 
 def create_app() -> Flask:
@@ -35,25 +27,23 @@ def create_app() -> Flask:
 
     # ─── Extensions ──────────────────────────────────────────────────────
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db)          # optionnel si tu n’utilises pas encore les migrations
+
+    # ─── Création automatique des tables (une seule fois) ────────────────
+    with app.app_context():
+        db.create_all()
 
     # ─── Blueprints ───────────────────────────────────────────────────────
     app.register_blueprint(home_bp)
     app.register_blueprint(geo_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(metrics_bp)
 
-    socketio = SocketIO(app,
-                        async_mode='eventlet',
-                        cors_allowed_origins='*',
-                        logger=True, engineio_logger=False)
-
-    # ▶️  lance la boucle qui émet les stats toutes les 2 s
-    start_metrics_task(socketio)
+    # ▶️  start_metrics_task()     # dé-commenter si besoin
 
     # ─── Sync data au 1er appel ───────────────────────────────────────────
     @app.before_request
     def _sync_data():
-        """S’assure qu’il y a des données avant toute requête."""
         repo = AssociationRepository()
         try:
             repo.ensure_populated()
@@ -63,7 +53,6 @@ def create_app() -> Flask:
     return app
 
 
-# Visibilité pour `flask run`
 app = create_app()
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # Controller/association_controller.py
 from flask import Blueprint, render_template, jsonify, request
 
-from Repository.docker_repository import get_hardware_info_remote
+# from Repository.docker_repository import get_hardware_info_remote
 from Service.association_service import AssociationService
 
 bp = Blueprint("home", __name__)
@@ -10,8 +10,10 @@ _service = AssociationService()
 
 @bp.route("/")
 def index():
-    hwinfo = get_hardware_info_remote()      # retourne un objet/dict
-    return render_template("home/index.html", hwinfo=hwinfo)
+    # hwinfo = get_hardware_info_remote()      # retourne un objet/dict
+    return render_template("home/index.html"
+                           # , hwinfo=hwinfo
+                           )
 
 
 @bp.route("/api/assos")

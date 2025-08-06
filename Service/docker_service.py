@@ -1,14 +1,13 @@
 # Service/docker_service.py
 
-from Repository.docker_repository import get_snapshot_and_summary, get_hardware_info_remote
-import eventlet
+from Repository.docker_repository import get_snapshot_and_summary
 
 def _background(socketio):
     while True:
         rows, summary = get_snapshot_and_summary()
-        hw = get_hardware_info_remote()
+        # hw = get_hardware_info_remote()
         # Fusionne les dicts summary + hw pour n'envoyer qu'un seul objet
-        summary_payload = {**summary, **hw}
+        summary_payload = {**summary}
         socketio.emit('stats', rows)
         socketio.emit('summary', summary_payload)
         socketio.sleep(0.5)

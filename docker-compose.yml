@@ -1,49 +1,32 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:16
-    container_name: assoniort_db
     environment:
-      POSTGRES_DB: astroweb
-      POSTGRES_USER: astroweb
-      POSTGRES_PASSWORD: astroweb
+      POSTGRES_USER: asso
+      POSTGRES_PASSWORD: asso
+      POSTGRES_DB: asso
     volumes:
-      - pg-data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 3s
+      test: ["CMD-SHELL", "pg_isready -U asso"]
+      interval: 10s
       retries: 5
-    networks:
-      - stack_default          # ← ajouté
 
   web:
     build: .
-    container_name: assoniort_app
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      bash -c '
-        echo "⏳ waiting for postgres...";
-        until pg_isready -h db -U astroweb; do sleep 1; done;
-        echo "✅ postgres is ready";
-        flask db upgrade;
-        exec gunicorn -k eventlet -w 1 app:app --bind 0.0.0.0:5000
-      '
-    volumes:
-      - .:/app
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      DOCKER_HOST_URL: unix:///var/run/docker.sock
+      DATABASE_URL: postgresql://asso:asso@db:5432/asso
+    volumes:
+      - .:/app:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "5002:5000"
-    networks:
-      - stack_default
-      - npm-net               # si nécessaire pour Nginx-Proxy-Manager
-
-networks:
-  stack_default:               # réseau interne commun
-  npm-net:                     # réseau externe de NPM
-    external: true
+      - "8000:8000"
+    restart: unless-stopped
 
 volumes:
-  pg-data:
+  db_data:
