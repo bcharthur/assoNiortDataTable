@@ -1,16 +1,36 @@
+{# templates/index.html #}
 {% extends "base.html" %}
-
 {% block content %}
+
 <h1 class="h3 mb-4 text-gray-800">Répertoire des associations de Niort</h1>
 
+{# ───────── Cartes stats + carte interactive ───────── #}
 {% include 'home/fragments/stats-map-cards.html' %}
-{% include 'home/fragments/filtres.html' %}
+
+{# ───────── Filtres + DataTable ───────── #}
+<div class="card shadow mb-4">
+  {# — Filtres dans le header — #}
+  {% include 'home/fragments/filtres.html' %}
+
+  {# — Tableau dans le body — #}
+  <div class="card-body pt-0">
+    <div class="table-responsive">
+      <table id="assos-table"
+             class="table table-bordered table-striped"
+             width="100%">
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Modales de détail (en dehors de la card) #}
 {% include 'home/fragments/detail-modal.html' %}
 {% include 'home/fragments/detail-mail-modal.html' %}
 
+{# ───────── Métriques conteneur (CPU / RAM / Disque) ───────── #}
 <div class="row">
 
-  <!-- CPU Chart -->
+  <!-- CPU -->
   <div class="col-xl-3 col-md-6 mb-4">
     <div class="card border-left-primary shadow h-100 py-2">
       <div class="card-body text-center">
@@ -18,13 +38,13 @@
           Container CPU usage
         </div>
         <canvas id="cpuChart" width="100" height="100"></canvas>
-        <div class="mt-2 small" id="cpuVal">0 %</div>
-        <div class="small text-gray-600" id="cpuMax">/ 100% (0 CPUs)</div>
+        <div class="mt-2 small" id="cpuVal">0 %</div>
+        <div class="small text-gray-600" id="cpuMax">/ 100 % (0 CPUs)</div>
       </div>
     </div>
   </div>
 
-  <!-- Memory Chart -->
+  <!-- RAM -->
   <div class="col-xl-3 col-md-6 mb-4">
     <div class="card border-left-success shadow h-100 py-2">
       <div class="card-body text-center">
@@ -32,63 +52,56 @@
           Container memory usage
         </div>
         <canvas id="memChart" width="100" height="100"></canvas>
-        <div class="mt-2 small" id="memVal">0 GB</div>
-        <div class="small text-gray-600" id="memMax">/ 0 GiB</div>
-        <div class="small font-weight-bold" id="memPct">0 %</div>
+        <div class="mt-2 small" id="memVal">0 GB</div>
+        <div class="small text-gray-600" id="memMax">/ 0 GiB</div>
+        <div class="small font-weight-bold" id="memPct">0 %</div>
       </div>
     </div>
   </div>
 
-  <!-- Disk Chart -->
+  <!-- Disque -->
   <div class="col-xl-3 col-md-6 mb-4">
     <div class="card border-left-info shadow h-100 py-2">
       <div class="card-body text-center">
         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-          Disk usage (
-{#            {{ hwinfo.disk_device }}#}
-            )
+          Disk usage
         </div>
         <canvas id="diskChart" width="100" height="100"></canvas>
-        <div class="mt-2 small" id="diskVal">0 GB free</div>
-        <div class="small text-gray-600" id="diskMax">/ 0 GB</div>
-        <div class="small font-weight-bold" id="diskPct">0 %</div>
+        <div class="mt-2 small" id="diskVal">0 GB free</div>
+        <div class="small text-gray-600" id="diskMax">/ 0 GB</div>
+        <div class="small font-weight-bold" id="diskPct">0 %</div>
       </div>
     </div>
   </div>
 
-</div>
+</div> {# /row #}
 
+{# ───────── Tableau conteneurs actifs ───────── #}
 <div class="card shadow mb-4">
   <div class="card-header py-3">
     <h6 class="m-0 font-weight-bold text-primary">Conteneurs actifs</h6>
   </div>
   <div class="card-body">
     <div class="table-responsive">
-   <table id="contTable" class="table table-bordered" width="100%">
-  <thead>
-    <tr>
-      <th></th>           <!-- chevron -->
-      <th>Nom</th><th>CPU %</th><th>RAM %</th><th>RAM</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-
+      <table id="contTable" class="table table-bordered" width="100%">
+        <thead>
+          <tr>
+            <th></th> <!-- chevron -->
+            <th>Nom</th>
+            <th>CPU %</th>
+            <th>RAM %</th>
+            <th>RAM</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- ===== SPINNER + TABLE ===== -->
-<div id="loading" class="text-center my-5">
+{# ───────── Spinner de chargement ───────── #}
+<div id="loading" class="text-center my-5 d-none">
   <div class="spinner-border text-primary" role="status"></div>
 </div>
 
-<div class="card shadow mb-4" style="display:none" id="table-card">
-  <div class="card-body">
-    <div class="table-responsive">
-      <table id="assos-table" class="table table-bordered" width="100%"></table>
-    </div>
-  </div>
-</div>
 {% endblock %}

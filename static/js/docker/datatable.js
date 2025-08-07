@@ -55,7 +55,7 @@ export function createDashboardTable() {
     ],
     order: [[1, 'asc']],           // par défaut, tri alphabetique sur la colonne Nom
     language: {
-      url: 'https://cdn.datatables.net/plug‑ins/1.13.8/i18n/fr‑FR.json'
+      url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
     }
   });
 

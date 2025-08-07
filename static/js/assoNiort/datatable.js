@@ -59,7 +59,7 @@
       data: rows,
       columns: COLUMNS,
       columnDefs: COL_WIDTHS,
-      language:{url:'https://cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'},
+      language:{url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'},
       autoWidth:false, scrollX:true, scrollY:'60vh', scrollCollapse:true, responsive:false,
       colResize:{ realtime:true, handleWidth:8 },
       pageLength:25, processing:true, deferRender:true,

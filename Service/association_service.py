@@ -1,6 +1,6 @@
 # Service/association_service.py
 import pandas as pd
-
+from sqlalchemy import or_
 from Entity.association_entity import Association
 from extensions import db
 from Repository.association_repository import AssociationRepository

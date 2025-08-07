@@ -1,0 +1,9 @@
+docker compose build --no-cache
+docker compose up -d
+docker compose logs -f web
+
+
+
+ docker compose up --build -d --force-recreate
+ puis
+ docker compose logs -f web
