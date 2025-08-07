@@ -113,3 +113,6 @@ export function updateDashboardTable(dt, raw) {
     }
   });
 }
+// Exposez globalement :
+window.createDashboardTable = createDashboardTable;
+window.updateDashboardTable = updateDashboardTable;

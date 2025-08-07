@@ -41,21 +41,18 @@
         </button>
       </div>
 
-      <div class="card-body p-0" style="height:320px;">
-        <div id="niortMap" class="position-relative h-100">
-          <!-- Loader overlay -->
-          <div id="mapLoader"
-               class="d-flex flex-column align-items-center justify-content-center
-                      position-absolute w-100 h-100 bg-white"
-               style="opacity:.9; z-index:999;">
-            <div class="spinner-border text-primary mb-3" role="status"></div>
-            <div class="progress w-75 mb-1">
-              <div id="mapProgress" class="progress-bar" style="width:0%"></div>
-            </div>
-            <small id="mapProgressTxt" class="text-muted">0 / 0</small>
-          </div>
-        </div>
-      </div>
+      <div class="card shadow-sm mb-4">
+  <div class="card-body p-0" style="height:400px; position:relative">
+    <div id="niortMap" style="width:100%; height:100%"></div>
+
+    <!-- Loader overlay -->
+{#    <div id="mapLoader"#}
+{#         class="d-flex align-items-center justify-content-center position-absolute w-100 h-100 bg-white"#}
+{#         style="opacity:.8; z-index:1000">#}
+{#      <div class="spinner-border text-primary" role="status"></div>#}
+{#    </div>#}
+  </div>
+</div>
     </div>
   </div>
 
