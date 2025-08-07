@@ -1,40 +1,49 @@
-$(function () {
-
+// static/js/assoNiort/init.js
+$(function() {
   const $spinner   = $('#loading'),
-        $tableCard = $('#table-card');   // ← nom correct (au lieu de $table)
+        $tableCard = $('#table-card');
 
-  /* chargement JSON parallèle */
+  // Affichage initial
+  $spinner.show();
+  $tableCard.hide();
+
+  // 1) Initialise carte
+  initMap();
+
+  // 2) Charge assos + stats en parallèle
   $.when(
     $.getJSON('/api/assos'),
     $.getJSON('/api/stats/category')
   ).done((assosResp, statsResp) => {
+    const assos = assosResp[0],
+          stats = statsResp[0];
 
-    const assos = assosResp[0];
-    const stats = statsResp[0];
-
-    /* cartes indicateurs (crée déjà le doughnut catDoughnut) */
+    // a) KPI + doughnut
     buildDashCards(assos, stats);
 
-    /* DataTable : création unique */
+    // b) conserve pour export map
+    localStorage.setItem('assosRaw', JSON.stringify(assos));
+
+    // c) DataTable + filtres / détails / mail
     const table = buildAssosTable(assos, () => {
       $spinner.fadeOut(150, () => $tableCard.fadeIn(200));
-      initAssos();
-      attachDetails(table);          // bouton œil + modal détail
-      attachMail(table);
-      localStorage.setItem('assosRaw', JSON.stringify(assos));
-      plotAssociations(assos);   // place les marqueurs
-
+      initAssos();                // filtres
+      attachDetails(table);       // modal œil
+      attachMail(table);          // modal mail
     });
 
-    /* plus besoin de créer un deuxième graphique sur #catChart
-       — buildDashCards gère déjà le catDoughnut — */
+    // d) Marqueurs sur la carte
+    plotAssociations(assos);
 
   }).fail(() => {
     $spinner.html('<p class="text-danger">Erreur de chargement.</p>');
   });
 
-  /* ré‑ajuste si resize ou toggle sidebar */
-  $(window).on('resize', adjustVisibleTables);
+  // 3) Ajustement responsive
+  function adjust() {
+    $.fn.dataTable.tables({ visible:true, api:true }).columns.adjust();
+  }
+  $(window).on('resize', () => setTimeout(adjust, 300));
   $('#sidebarToggle, #sidebarToggleTop')
-    .on('click', () => setTimeout(adjustVisibleTables, 300));
+    .on('click', () => setTimeout(adjust, 300));
 });
