@@ -21,6 +21,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://asso:asso@db:5432/asso
+      SSH_HOST: 162.19.27.110    # seulement l’adresse
+      SSH_PORT: "2222"
+      SSH_USER: astroweb         # votre login
+      SSH_KEY_PATH: /home/app/.ssh/id_ed25519
     volumes:
       - .:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock
