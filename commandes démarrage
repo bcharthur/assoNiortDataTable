@@ -1,10 +1,23 @@
+# === PowerShell hôte ===
 docker compose down -v
 docker compose build --no-cache
 docker compose up -d
 docker compose logs -f web
 
++ rapide: (pour recharche js par exemple)
+docker compose up --build -d --force-recreate
+docker compose logs -f web
 
+# Accès à Postgres
+docker compose exec db psql -U asso -d asso
+  # Dans psql :
+  \dt
+  SELECT * FROM associations LIMIT 10;
 
- docker compose up --build -d --force-recreate
- puis
- docker compose logs -f web
+# === Migrations dans le conteneur web ===
+docker compose exec -e FLASK_APP=app.py web flask db migrate -m "Initial migration"
+docker compose exec -e FLASK_APP=app.py web flask db upgrade
+
+# (optionnel) via Alembic CLI
+docker compose exec web alembic -c migrations/alembic.ini revision --autogenerate -m "Initial migration"
+docker compose exec web alembic -c migrations/alembic.ini upgrade head

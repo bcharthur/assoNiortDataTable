@@ -24,9 +24,6 @@ $(function(){
       attachDetails(table);
       attachMail(table);
     });
-
-    // c) Marqueurs
-    plotAssociations(assos);
   })
   .fail(function(){
     $('#loading').html('<p class="text-danger">Erreur chargement.</p>');
@@ -35,27 +32,6 @@ $(function(){
   // ─── 3) STATS CONTENEURS ─────────────────
   $('#loadingModal').modal('show');
   $('[data-toggle="tooltip"]').tooltip();
-
-  // a) tableau
-  const contTable = window.createDashboardTable();
-
-  // b) trois doughnuts vides
-  function makeDonut(id){
-    const ctx = document.getElementById(id).getContext('2d');
-    return new Chart(ctx, {
-      type:'doughnut',
-      data:{ datasets:[{ data:[0,100], backgroundColor:['#eee','#eee'], borderWidth:0 }] },
-      options:{ cutout:'75%', plugins:{ legend:{display:false} }, tooltips:{enabled:false}, hover:{mode:null} }
-    });
-  }
-  const cpuChart  = makeDonut('cpuChart');
-  const memChart  = makeDonut('memChart');
-  const diskChart = makeDonut('diskChart');
-
-  // c) socket → connectStats(table, cb, cpuChart, memChart, diskChart)
-  window.connectStats(contTable, function(){
-    $('#loadingModal').modal('hide');
-  }, cpuChart, memChart, diskChart);
 
   // ─── 4) RWD ──────────────────────────────
   function adjust(){
