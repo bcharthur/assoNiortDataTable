@@ -61,6 +61,9 @@ table.dataTable thead th.dt-colresizable-hover,
       <li class="nav-item active">
           <a class="nav-link" href="/"><i class="fas fa-fw fa-table"></i><span>Associations</span></a>
       </li>
+      <li class="nav-item active">
+          <a class="nav-link" href="/docker"><i class="fa-brands fa-docker"></i><span>Docker</span></a>
+      </li>
       <hr class="sidebar-divider d-none d-md-block">
       <div class="text-center d-none d-md-inline">
           <button class="rounded-circle border-0" id="sidebarToggle"></button>
@@ -75,6 +78,15 @@ table.dataTable thead th.dt-colresizable-hover,
                   <i class="fa fa-bars"></i>
               </button>
               <ul class="navbar-nav ml-auto">
+                  <li class="nav-item my-auto mr-3">
+  {% if ssh_status_ok is sameas true %}
+    <i class="fas fa-circle text-success" title="SSH OK"></i>
+  {% elif ssh_status_ok is sameas false %}
+    <i class="fas fa-circle text-danger" title="SSH Failed"></i>
+  {% else %}
+    <i class="fas fa-circle text-secondary" title="SSH Not configured"></i>
+  {% endif %}
+</li>
                   <li class="nav-item">
                       <span class="mr-2 d-none d-lg-inline text-gray-600 small">
                           Projet associations Niort
@@ -122,6 +134,8 @@ table.dataTable thead th.dt-colresizable-hover,
 <script src="{{ url_for('static', filename='js/docker/init.js') }}"></script>
 <script src="{{ url_for('static', filename='js/docker/datatable.js') }}"></script>
 <script src="{{ url_for('static', filename='js/docker/stats.js') }}"></script>
+<script src="{{ url_for('static', filename='js/docker/docker.js') }}"></script>
+
 
 <!-- Le grand orchestreur -->
 <script src="{{ url_for('static', filename='js/init.js') }}"></script>
