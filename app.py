@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, current_app
+from flask_socketio import SocketIO
 from sqlalchemy.exc import SQLAlchemyError
 from extensions import db, migrate
 
@@ -12,6 +13,7 @@ from Controller.metric_controller import metrics_bp
 from Repository.association_repository import AssociationRepository
 # from Service.docker_service import start_metrics_task
 
+socketio = SocketIO(cors_allowed_origins="*")
 
 def create_app() -> Flask:
     app = Flask(__name__,
@@ -50,10 +52,11 @@ def create_app() -> Flask:
         except SQLAlchemyError as exc:
             current_app.logger.error("Sync associations failed: %s", exc)
 
+    socketio.init_app(app)
     return app
 
 
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000)

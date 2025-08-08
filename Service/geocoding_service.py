@@ -5,6 +5,7 @@ from collections import deque
 from flask import abort
 from app import db
 from Entity.geocode_cache import GeocodeCache
+from sqlalchemy.exc import IntegrityError
 
 
 class GeocodingService:
@@ -66,5 +67,10 @@ class GeocodingService:
         entry = GeocodeCache(address=address, lat=lat, lon=lon)
         db.session.add(entry)
         db.session.commit()
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
 
         return {"lat": lat, "lon": lon}
