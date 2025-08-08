@@ -2,7 +2,9 @@
 $(function(){
   // ─── 1) CARTE ───────────────────────────
   // $('#mapLoader').show();
-  initMap();  // défini par assoNiort/map.js
+  if ( $('#niortMap').length ) {
+    initMap();  // n’est appelé que si #niortMap existe
+  }
 
   // ─── 2) ASSOCIATIONS + RÉPARTITION ──────
   $.when(
@@ -40,4 +42,9 @@ $(function(){
   $(window).on('resize',   () => setTimeout(adjust,300));
   $('#sidebarToggle,#sidebarToggleTop')
     .on('click',      () => setTimeout(adjust,300));
+
+   // 5) Docker SSH page ?
+  if ( $('.ssh-test-form').length && typeof initDockerPage === 'function' ) {
+    initDockerPage();
+  }
 });

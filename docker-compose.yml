@@ -24,6 +24,8 @@ services:
     volumes:
       - .:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      # monte tout le dossier SSH de votre Windows dans /home/app/.ssh
+      - C:\Users\Arthur\.ssh:/home/app/.ssh:r
     ports:
       - "8000:8000"
     restart: unless-stopped
