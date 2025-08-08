@@ -3,6 +3,7 @@ from flask import Flask, current_app
 from flask_socketio import SocketIO
 from sqlalchemy.exc import SQLAlchemyError
 
+from Service.docker_service import start_metrics_task
 # Extensions
 from extensions import db, migrate
 
@@ -47,8 +48,6 @@ def create_app() -> Flask:
     app.register_blueprint(metrics_bp)
     app.register_blueprint(docker_bp)
 
-    # ▶️  start_metrics_task()  # si besoin
-
     # ─── Sync data au 1er appel ───────────────────────────────────────────
     @app.before_request
     def _sync_data():
@@ -57,6 +56,8 @@ def create_app() -> Flask:
             repo.ensure_populated()
         except SQLAlchemyError as exc:
             current_app.logger.error("Sync associations failed: %s", exc)
+            # libère la transaction pour ne pas bloquer la suite
+            db.session.rollback()
 
     # ─── Contexte global : statut SSH pour la navbar ────────────────────
     @app.context_processor
@@ -74,8 +75,9 @@ def create_app() -> Flask:
             current_app.logger.error("SSH status check failed: %s", exc)
             return {'ssh_status_ok': False, 'ssh_status_msg': str(exc)}
 
-    # Initialisation de SocketIO
+    # ─── Initialisation de SocketIO & lancement du background task ───────
     socketio.init_app(app)
+    start_metrics_task(socketio)
 
     return app
 

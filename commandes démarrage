@@ -1,12 +1,45 @@
 # === PowerShell hôte ===
+Réappliquer vos migrations après avoir vidé le volume
+Vous avez fait :
+
 docker compose down -v
 docker compose build --no-cache
 docker compose up -d
+
+Mais cela réinitialise votre base, donc les tables créées par les migrations sont parties. Il faut donc relancer :
+
+docker compose exec -e FLASK_APP="app:create_app" web flask db upgrade
+
+#=== NOTE ===
+Vérifier qu’il existe bien un enregistrement dans ssh_servers
+Ouvrez un shell Postgres dans le conteneur db :
+
+docker compose exec db psql -U asso -d asso
+
+Puis :
+
+SELECT id, name, host, port, "user", key_path
+FROM ssh_servers;
+
+Si vous n’avez aucun résultat, la table est vide.
+
+Dans ce cas vous devez ré-insérer votre VPS :
+
+INSERT INTO ssh_servers (name, host, port, "user", key_path)
+VALUES
+  ('AstroWeb VPS', '162.19.27.110', 2222, 'astroweb', '/home/app/.ssh/id_ed25519');
+
+puis
+
 docker compose logs -f web
+
+# ===
 
 + rapide: (pour recharche js par exemple)
 docker compose up --build -d --force-recreate
 docker compose logs -f web
+
+# ===
 
 # Accès à Postgres
 docker compose exec db psql -U asso -d asso
@@ -15,9 +48,11 @@ docker compose exec db psql -U asso -d asso
   SELECT * FROM associations LIMIT 10;
 
 # === Migrations dans le conteneur web ===
-docker compose exec -e FLASK_APP=app.py web flask db migrate -m "Migration pour docker ssh"
+docker compose exec -e FLASK_APP=app.py web flask db migrate -m "Migration pour metrics"
 docker compose exec -e FLASK_APP=app.py web flask db upgrade
 
 # (optionnel) via Alembic CLI
 docker compose exec web alembic -c migrations/alembic.ini revision --autogenerate -m "Initial migration"
 docker compose exec web alembic -c migrations/alembic.ini upgrade head
+
+

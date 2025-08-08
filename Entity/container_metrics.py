@@ -1,7 +1,6 @@
 # Entity/container_metrics.py
-from dataclasses import dataclass
 
-BYTES_MB = 1_000_000            # MB décimal (Docker Desktop)
+from dataclasses import dataclass
 
 @dataclass
 class ContainerMetrics:
@@ -9,52 +8,52 @@ class ContainerMetrics:
     name: str
     cpu_pct: float
     mem_pct: float
-    mem_used: int          # bytes
-    mem_lim:  int          # bytes
+    mem_used: int
+    mem_lim:  int
     rd_mb:    float
     wr_mb:    float
-    cpus:     int          # vCPU visibles dans le cgroup
+    cpus:     int
 
     @classmethod
     def from_stats(cls, container):
-        s = container.stats(stream=False)
+        """
+        Prend un objet docker.models.containers.Container,
+        récupère son stats dict, et en extrait les métriques.
+        """
+        stats = container.stats(stream=False)
 
-        # ---------- CPU ----------
-        cpu_total   = s['cpu_stats']['cpu_usage']['total_usage']
-        cpu_system  = s['cpu_stats']['system_cpu_usage']
-        pcpu_total  = s['precpu_stats']['cpu_usage']['total_usage']
-        pcpu_system = s['precpu_stats']['system_cpu_usage']
+        # Calcul CPU
+        cpu_delta = stats["cpu_stats"]["cpu_usage"]["total_usage"] \
+                  - stats["precpu_stats"]["cpu_usage"]["total_usage"]
+        sys_delta = stats["cpu_stats"]["system_cpu_usage"] \
+                  - stats["precpu_stats"]["system_cpu_usage"]
+        percpu = len(stats["cpu_stats"]["cpu_usage"].get("percpu_usage", [])) or 1
+        cpu_pct = (cpu_delta / sys_delta * percpu * 100) if sys_delta > 0 else 0.0
 
-        cpu_delta = cpu_total - pcpu_total
-        sys_delta = cpu_system - pcpu_system
-        per_cpu   = s['cpu_stats']['cpu_usage'].get('percpu_usage', [])
-        nb_cpu    = len(per_cpu) or 1
-        cpu_pct   = (cpu_delta / sys_delta) * nb_cpu * 100 if sys_delta else 0
+        # Calcul Mémoire
+        mem_usage = stats["memory_stats"]["usage"] \
+                  - stats["memory_stats"].get("stats", {}).get("cache", 0)
+        mem_limit = stats["memory_stats"]["limit"]
+        mem_pct   = (mem_usage / mem_limit * 100) if mem_limit > 0 else 0.0
 
-        # -------- Mémoire --------
-        mem = s['memory_stats']
-        usage = mem['usage']
-        cache = mem['stats'].get('cache', 0)  # 🠚  retire tout le cache
-        mem_used = usage - cache
+        # I/O
+        blkio = stats.get("blkio_stats", {}).get("io_service_bytes_recursive", [])
+        rd = next((x["value"] for x in blkio if x["op"].lower()=="read"), 0)
+        wr = next((x["value"] for x in blkio if x["op"].lower()=="write"),0)
 
-        mem_lim = mem['limit'] or 1
-        mem_pct = mem_used / mem_lim * 100
-
-        # ---------- Block I/O ----------
-        blkio = s['blkio_stats']['io_service_bytes_recursive']
-        rd = sum(x['value'] for x in blkio if x.get('op') == 'Read')
-        wr = sum(x['value'] for x in blkio if x.get('op') == 'Write')
+        # Nombre de CPU
+        nb_cpu = stats["cpu_stats"].get("online_cpus") or percpu
 
         return cls(
-            id       = container.short_id,
-            name     = container.name,
-            cpu_pct  = round(cpu_pct, 2),
-            mem_pct  = round(mem_pct, 2),
-            mem_used = mem_used,
-            mem_lim  = mem_lim,
-            rd_mb    = round(rd / BYTES_MB, 1),
-            wr_mb    = round(wr / BYTES_MB, 1),
-            cpus     = nb_cpu
+            id=container.short_id,
+            name=container.name,
+            cpu_pct=round(cpu_pct,2),
+            mem_pct=round(mem_pct,2),
+            mem_used=mem_usage,
+            mem_lim=mem_limit,
+            rd_mb=round(rd/1e6,1),
+            wr_mb=round(wr/1e6,1),
+            cpus=nb_cpu
         )
 
     def as_dict(self):

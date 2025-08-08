@@ -110,36 +110,27 @@ table.dataTable thead th.dt-colresizable-hover,
   </div>
 </div>
 
-<!-- JS externes -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+ <!-- JS externes -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
-<!-- Scripts assoNiort -->
-<script src="{{ url_for('static', filename='js/assoNiort/datatable.js') }}"></script>
-<script src="{{ url_for('static', filename='js/assoNiort/filtres.js') }}"></script>
-<script src="{{ url_for('static', filename='js/assoNiort/details.js') }}"></script>
-<script src="{{ url_for('static', filename='js/assoNiort/map.js') }}"></script>
-<script src="{{ url_for('static', filename='js/assoNiort/stats-cards.js') }}"></script>
-<script src="{{ url_for('static', filename='js/assoNiort/mail.js') }}"></script>
+  <!-- Scripts assoNiort -->
+  <script src="{{ url_for('static', filename='js/assoNiort/datatable.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/assoNiort/filtres.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/assoNiort/details.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/assoNiort/map.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/assoNiort/stats-cards.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/assoNiort/mail.js') }}"></script>
 
-<!-- Scripts Docker « classiques » -->
-<script src="{{ url_for('static', filename='js/docker/utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/docker/init.js') }}"></script>
-<script src="{{ url_for('static', filename='js/docker/datatable.js') }}"></script>
-<script src="{{ url_for('static', filename='js/docker/stats.js') }}"></script>
-<script src="{{ url_for('static', filename='js/docker/docker.js') }}"></script>
-
-
-<!-- Le grand orchestreur -->
-<script src="{{ url_for('static', filename='js/init.js') }}"></script>
-
+  <!-- Le grand orchestreur (tout le reste, y compris Docker Dashboard) -->
+  <script src="{{ url_for('static', filename='js/init.js') }}"></script>
 
 {% block scripts %}{% endblock %}
 
