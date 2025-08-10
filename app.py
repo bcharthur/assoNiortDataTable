@@ -60,17 +60,44 @@ def create_app() -> Flask:
             db.session.rollback()
 
     # ─── Contexte global : statut SSH pour la navbar ────────────────────
+    # ─── Contexte global : statut SSH pour la navbar ────────────────────
     @app.context_processor
     def inject_ssh_status():
         try:
+            from Repository.ssh_repository import SSHRepository
+            from Service.ssh_service import SSHService
+            from Entity.ssh_server import SSHServer
+            import os
+
             servers = SSHRepository.get_all()
-            if not servers:
-                return {'ssh_status_ok': None, 'ssh_status_msg': None}
-            ok, msg = SSHService.test_connection(servers[0])
-            return {
-                'ssh_status_ok': ok,
-                'ssh_status_msg': msg
-            }
+            srv = None
+
+            if servers:
+                srv = servers[0]
+            else:
+                # Fallback: variables d'environnement
+                host = os.getenv('SSH_HOST')
+                port = int(os.getenv('SSH_PORT', '22'))
+                user = os.getenv('SSH_USER')
+                key = os.getenv('SSH_KEY_PATH')
+                pwd = os.getenv('SSH_PASSWORD')
+
+                if host and user and (key or pwd):
+                    srv = SSHServer(
+                        name='ENV SSH',
+                        host=host,
+                        port=port,
+                        user=user,
+                        key_path=key,
+                        password=pwd
+                    )
+                else:
+                    # pas configuré du tout
+                    return {'ssh_status_ok': None, 'ssh_status_msg': 'SSH non configuré'}
+
+            ok, msg = SSHService.test_connection(srv)
+            return {'ssh_status_ok': ok, 'ssh_status_msg': msg}
+
         except Exception as exc:
             current_app.logger.error("SSH status check failed: %s", exc)
             return {'ssh_status_ok': False, 'ssh_status_msg': str(exc)}
