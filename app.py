@@ -50,6 +50,7 @@ def create_app() -> Flask:
     from Controller.metric_controller      import metrics_bp
     from Controller.docker_controller      import docker_bp
     from Controller.forfait_controller import forfait_bp
+    from Controller.deal_controller import deals_bp
 
     from Repository.association_repository import AssociationRepository
     from Repository.ssh_repository         import SSHRepository
@@ -64,6 +65,7 @@ def create_app() -> Flask:
     app.register_blueprint(metrics_bp)
     app.register_blueprint(docker_bp)
     app.register_blueprint(forfait_bp)
+    app.register_blueprint(deals_bp)
 
     # ─── Sync data "léger" au premier vrai hit HTTP (pas statique) ──────
     @app.before_request

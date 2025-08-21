@@ -1,36 +1,149 @@
-{# templates/index.html #}
 {% extends "base.html" %}
+{% block title %}Associations — Dashboard{% endblock %}
+
 {% block content %}
+<div class="container-fluid">
 
-<h1 class="h3 mb-4 text-gray-800">Répertoire des associations de Niort</h1>
-
-{# ───────── Cartes stats + carte interactive ───────── #}
-{% include 'home/fragments/stats-map-cards.html' %}
-
-{# ───────── Filtres + DataTable ───────── #}
-<div class="card shadow mb-4">
-  {# — Filtres dans le header — #}
-  {% include 'home/fragments/filtres.html' %}
-
-  {# — Tableau dans le body — #}
-  <div class="card-body pt-0">
-    <div class="table-responsive">
-      <table id="assos-table"
-             class="table table-bordered table-striped"
-             width="100%">
-      </table>
+  <!-- Toolbar (filtres en haut) -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+      <div class="form-row align-items-center">
+        <div class="col-md-3 mb-2 mb-md-0">
+          <input id="q" type="search" class="form-control form-control-sm" placeholder="Rechercher (nom, contact, adresse...)">
+        </div>
+        <div class="col-md-3 mb-2 mb-md-0">
+          <select id="filterCat" class="custom-select custom-select-sm">
+            <option value="">Toutes catégories</option>
+          </select>
+        </div>
+        <div class="col-md-3 mb-2 mb-md-0">
+          <select id="filterSub" class="custom-select custom-select-sm">
+            <option value="">Toutes sous-catégories</option>
+          </select>
+        </div>
+        <div class="col-md-3 text-md-right">
+          <div class="btn-group btn-group-toggle btn-group-sm" data-toggle="buttons">
+            <label class="btn btn-outline-secondary active">
+              <input type="radio" name="siteRadio" value="" autocomplete="off" checked> Tous
+            </label>
+            <label class="btn btn-outline-secondary">
+              <input type="radio" name="siteRadio" value="with" autocomplete="off"> Avec site
+            </label>
+            <label class="btn btn-outline-secondary">
+              <input type="radio" name="siteRadio" value="without" autocomplete="off"> Sans site
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- KPIs + Map -->
+  {% include 'home/fragments/stats-map-cards.html' %}
+
+  <!-- Onglets : Grille / Pipeline -->
+  <ul class="nav nav-tabs mt-3" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-grid-link" data-toggle="tab" href="#tab-grid" role="tab">Grille</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-pipeline-link" data-toggle="tab" href="#tab-pipeline" role="tab">Pipeline</a>
+    </li>
+    <li class="ml-auto my-auto small text-muted"><span id="cardsCount">0 élément(s)</span></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="tab-grid" role="tabpanel">
+      <div id="cardsLoading" class="text-center my-4 d-none">
+        <div class="spinner-border text-primary"></div>
+      </div>
+      <div id="emptyState" class="alert alert-light d-none">Aucun résultat.</div>
+
+      <div id="cardGrid" class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4"></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-pipeline" role="tabpanel">
+      {% include 'home/fragments/deals_kanban.html' %}
+    </div>
+  </div>
+
+  {% include 'home/fragments/detail-modal.html' %}
+  {% include 'home/fragments/detail-mail-modal.html' %}
+  {% include 'home/fragments/map-fullscreen-modal.html' %}
+
+  <!-- New Deal Modal -->
+  <div class="modal fade" id="newDealModal" tabindex="-1" role="dialog" aria-labelledby="newDealTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="newDealTitle">Nouvelle opportunité</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Fermer">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form id="newDealForm">
+          <div class="modal-body">
+            <input type="hidden" id="dealAssocId" />
+            <div class="form-group">
+              <label>Titre</label>
+              <input type="text" id="dealTitle" class="form-control" required>
+              <small class="form-text text-muted">Ex : Site vitrine — <span id="dealAssocNameHelp"></span></small>
+            </div>
+            <div class="form-group">
+              <label>Owner</label>
+              <select id="dealOwnerSelect" class="custom-select">
+                <option>Théo</option><option>Rick</option><option>Loïc</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Étape initiale</label>
+              <select id="dealStageSelect" class="custom-select">
+                <option value="CONTACTED">Démarché</option>
+                <option value="RESPONSE_POSITIVE">Réponse +</option>
+                <option value="MEETING_SCHEDULED">RDV planifié</option>
+                <option value="MEETING_DONE_POSITIVE">RDV OK</option>
+                <option value="MOCKUP_DONE">Maquette envoyée</option>
+                <option value="QUOTE_SENT">Devis envoyé</option>
+                <option value="WON">Accepté</option>
+                <option value="LOST">Refusé</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea id="dealNotes" class="form-control" rows="3" placeholder="Contexte, points d’attention..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="dealCreateBtn" type="submit" class="btn btn-primary">Créer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div>
-
-{# Modales de détail (en dehors de la card) #}
-{% include 'home/fragments/detail-modal.html' %}
-{% include 'home/fragments/detail-mail-modal.html' %}
-
-
-{# ───────── Spinner de chargement ───────── #}
-<div id="loading" class="text-center my-5 d-none">
-  <div class="spinner-border text-primary" role="status"></div>
-</div>
-
 {% endblock %}
+
+{% block scripts %}
+  <!-- Utils d’abord -->
+  <script src="{{ url_for('static', filename='js/assoNiort/common-utils.js') }}"></script>
+
+  <!-- Charts + KPI (pose window.buildDashCards) -->
+  <script src="{{ url_for('static', filename='js/assoNiort/stats-cards.js') }}"></script>
+
+  <!-- Grille + filtres + modales (utilise buildDashCards) -->
+  <script src="{{ url_for('static', filename='js/assoNiort/associations-dashboard.js') }}"></script>
+
+  <!-- Kanban -->
+  <script src="{{ url_for('static', filename='js/assoNiort/deals-kanban.js') }}"></script>
+
+  <!-- Carte (petite + modal fullscreen + export PNG) -->
+  <script src="{{ url_for('static', filename='js/assoNiort/map.js') }}"></script>
+
+  <script>
+    // initialise la petite carte si présente
+    if (window.initMap) window.initMap();
+  </script>
+{% endblock %}
+
+

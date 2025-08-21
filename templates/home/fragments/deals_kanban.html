@@ -1,0 +1,71 @@
+<style>
+  .kanban-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: .75rem;
+  }
+  @media (max-width: 1600px){ .kanban-board { grid-template-columns: repeat(6, 1fr); } }
+  @media (max-width: 1200px){ .kanban-board { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 992px){  .kanban-board { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 576px){  .kanban-board { grid-template-columns: 1fr; } }
+
+  .kanban-col { display:flex; flex-direction:column; max-height: calc(100vh - 260px); }
+  .kanban-col .kanban-header {
+    padding: .5rem .75rem; border-bottom: 1px solid #e3e6f0;
+    background: #f8f9fc; font-weight: 600; display:flex; justify-content:space-between; align-items:center;
+  }
+  .kanban-col .kanban-drop {
+    overflow:auto; padding:.5rem; flex:1 1 auto; background:#fff;
+  }
+  .kanban-card {
+    border:1px solid #e3e6f0; border-radius:.5rem; background:#fff; padding:.5rem .5rem;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04); margin-bottom:.5rem; cursor: grab;
+  }
+  .kanban-card:active{ cursor:grabbing; }
+  .kanban-drop.drag-over { outline:2px dashed #4e73df; outline-offset:-4px; background:#f1f4ff; }
+  .stage-badge { font-size: .72rem; }
+</style>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <div class="form-row align-items-center">
+      <div class="col-md-3 mb-2 mb-md-0">
+        <select id="dealOwner" class="custom-select custom-select-sm">
+          <option value="">Tous les owners</option>
+          <option>Théo</option><option>Rick</option><option>Loïc</option>
+        </select>
+      </div>
+      <div class="col-md-5 mb-2 mb-md-0">
+        <div class="input-group input-group-sm">
+          <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div>
+          <input id="dealQ" class="form-control" placeholder="Rechercher (titre, association)">
+        </div>
+      </div>
+      <div class="col-md-4 text-md-right">
+        <div id="kanbanView" class="btn-group btn-group-toggle" data-toggle="buttons">
+          <label class="btn btn-outline-secondary btn-sm active" data-view="ALL">
+            <input type="radio" autocomplete="off" checked> Tout
+          </label>
+          <label class="btn btn-outline-secondary btn-sm" data-view="PROSPECT">
+            <input type="radio" autocomplete="off"> Démarchage
+          </label>
+          <label class="btn btn-outline-secondary btn-sm" data-view="MEET">
+            <input type="radio" autocomplete="off"> Rendez-vous
+          </label>
+          <label class="btn btn-outline-secondary btn-sm" data-view="MOCKUP">
+            <input type="radio" autocomplete="off"> Maquette
+          </label>
+          <label class="btn btn-outline-secondary btn-sm" data-view="QUOTE">
+            <input type="radio" autocomplete="off"> Devis
+          </label>
+          <label class="btn btn-outline-secondary btn-sm" data-view="RESULT">
+            <input type="radio" autocomplete="off"> Résultats
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="kanban-board" id="kanbanBoard"></div>
+<div class="text-right mt-2"><small class="text-muted" id="dealCount">0 deal(s)</small></div>
