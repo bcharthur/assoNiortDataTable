@@ -1,8 +1,9 @@
 // static/js/assoNiort/deals-kanban.js
-// Version "global" : s’appuie sur window.esc / window.debounce / window.fetchJSON
+// Charge le pipeline AU DÉMARRAGE (spinner), rend filtre + DnD,
+// bouton “unlink” et met à jour le badge d’étape en temps réel.
 
 (function(){
-  // Fallbacks au cas où common-utils n’est pas encore chargé
+  // Fallbacks si common-utils n’est pas encore injecté
   const esc = (window.esc) || function (s) {
     return String(s ?? '')
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -22,40 +23,69 @@
     { key:'LOST',                 label:'Refusé',           cls:'badge-dark',     group:'RESULT'   },
   ];
 
+  function stageMeta(key){
+    return STAGES.find(s=>s.key===key) || { label:key || '', cls:'badge-secondary', group:'PROSPECT' };
+  }
+  function stageLabel(key){ return stageMeta(key).label; }
+  function stageClass(key){ return stageMeta(key).cls; }
+
   const els = {};
-  const state = { rows: [], filtered: [], viewFilter:'ALL' };
+  const state = { rows: [], filtered: [], viewFilter:'ALL', loading: false };
 
   document.addEventListener('DOMContentLoaded', init);
 
   function init(){
-    els.board     = document.getElementById('kanbanBoard');
-    els.dealQ     = document.getElementById('dealQ');
+    els.board   = document.getElementById('kanbanBoard');
+    els.loading = document.getElementById('kanbanLoading');
+    els.empty   = document.getElementById('kanbanEmpty');
+    els.dealQ   = document.getElementById('dealQ');
     els.dealOwner = document.getElementById('dealOwner');
     els.dealCount = document.getElementById('dealCount');
     els.viewBtns  = Array.from(document.querySelectorAll('#kanbanView label[data-view]'));
     if (!els.board) return;
 
+    showLoading(true);
     renderEmptyColumns();
+
+    // CHARGEMENT IMMÉDIAT AU DÉMARRAGE
+    loadDeals(true)
+      .catch(err => { console.error(err); })
+      .finally(()=> showLoading(false));
 
     const tab = document.getElementById('tab-pipeline-link');
     if (tab) {
-      // charge la 1re fois quand l’onglet “Pipeline” devient visible
-      tab.addEventListener('shown.bs.tab', () => loadDeals(true), { once:true });
-      // rafraîchit quand on crée un deal depuis la grille
-      window.addEventListener('deal:created', (e)=> loadDeals(false, e.detail && e.detail.id));
-    } else {
-      loadDeals(true);
+      tab.addEventListener('shown.bs.tab', () => {
+        requestAnimationFrame(() => els.board.querySelectorAll('.kanban-drop').forEach(drop => drop.scrollTop = drop.scrollTop));
+      });
     }
 
+    // Filtres
     els.dealQ && els.dealQ.addEventListener('input', debounce(applyAndRender, 150));
     els.dealOwner && els.dealOwner.addEventListener('change', applyAndRender);
     els.viewBtns.forEach(b=> b.addEventListener('click', ()=>{
+      els.viewBtns.forEach(x=> x.classList.remove('active'));
+      b.classList.add('active');
       state.viewFilter = b.getAttribute('data-view') || 'ALL';
       applyAndRender();
     }));
 
     // utilitaire public
-    window.reloadDeals = () => loadDeals(false);
+    window.reloadDeals = () => {
+      showLoading(true);
+      loadDeals(false).finally(()=> showLoading(false));
+    };
+  }
+
+  function showLoading(on){
+    state.loading = !!on;
+    if (els.loading) els.loading.classList.toggle('d-none', !on);
+    if (els.board)   els.board.classList.toggle('d-none', !!on);
+    if (els.empty)   els.empty.classList.add('d-none');
+  }
+
+  function showEmpty(on){
+    if (els.empty) els.empty.classList.toggle('d-none', !on);
+    if (els.board) els.board.classList.toggle('d-none', !!on);
   }
 
   async function loadDeals(first, highlightId=null){
@@ -75,7 +105,6 @@
     const own = (els.dealOwner?.value || '').trim();
 
     let arr = state.rows.filter(d => {
-      // on masque les deals non affectés (association retirée)
       const hasAssoc = (d.association_id != null) || (d.association_title && d.association_title.trim() !== '');
       if (!hasAssoc) return false;
 
@@ -86,6 +115,16 @@
     });
 
     state.filtered = arr;
+
+    if (arr.length === 0) {
+      els.dealCount && (els.dealCount.textContent = '0 deal(s)');
+      showEmpty(true);
+      els.board.querySelectorAll('.kanban-drop').forEach(d => d.innerHTML = '');
+      updateCounts();
+      return;
+    }
+
+    showEmpty(false);
     renderBoard(arr, highlightId);
     els.dealCount && (els.dealCount.textContent = `${arr.length} deal(s)`);
   }
@@ -115,17 +154,22 @@
         const card = document.querySelector(`.kanban-card[data-id="${CSS.escape(id)}"]`);
         if (!card) return;
         const fromStage = card.getAttribute('data-stage');
-        if (fromStage === st.key) return;
+        const toStage   = st.key;
+        if (fromStage === toStage) return;
 
+        // Déplacement optimiste
         drop.appendChild(card);
-        card.setAttribute('data-stage', st.key);
+        card.setAttribute('data-stage', toStage);
+        updateCardStageUI(card, toStage);  // ← MAJ BADGE ICI
         updateCounts();
 
-        patchStage(id, st.key).catch(err => {
+        patchStage(id, toStage).catch(err => {
           console.error('PATCH failed, revert', err);
-          const from = els.board.querySelector(`.kanban-drop[data-stage="${fromStage}"]`);
+          // revert déplacement
+          const from = els.board.querySelector(`.kanban-drop[data-stage="${CSS.escape(fromStage)}"]`);
           if (from) from.appendChild(card);
           card.setAttribute('data-stage', fromStage);
+          updateCardStageUI(card, fromStage); // ← revert BADGE
           updateCounts();
           alert('Impossible de changer l’étape (voir logs).');
         });
@@ -151,12 +195,10 @@
       card.setAttribute('data-id', String(d.id));
       card.setAttribute('data-stage', d.stage || '');
 
-      const badgeCls = (STAGES.find(s=>s.key===d.stage)?.cls) || 'badge-secondary';
+      const badgeCls = stageClass(d.stage);
       const when = d.updated_at ? new Date(d.updated_at).toLocaleString() : '';
       const assoc = d.association_title ? `<div class="small text-muted"><i class="fas fa-users mr-1"></i>${esc(d.association_title)}</div>` : '';
 
-      // ── bouton retirer l’affectation ─────────────────────────
-      // supprime l’association du deal, puis enlève la carte du board
       const unlinkBtnHtml = `
         <button type="button" class="btn btn-sm btn-outline-danger ml-2" data-action="unlink"
                 title="Retirer l’association (la carte sera retirée)">
@@ -168,7 +210,7 @@
         <div class="d-flex justify-content-between align-items-start">
           <div class="font-weight-bold">${esc(d.title || '—')}</div>
           <div class="d-flex align-items-center">
-            <span class="badge ${badgeCls} stage-badge">${esc(stageLabel(d.stage))}</span>
+            <span class="badge ${badgeCls} stage-badge mr-2">${esc(stageLabel(d.stage))}</span>
             ${unlinkBtnHtml}
           </div>
         </div>
@@ -183,7 +225,7 @@
         e.dataTransfer.effectAllowed = 'move';
       });
 
-      // action unlink
+      // Unlink
       const unlinkBtn = card.querySelector('[data-action="unlink"]');
       if (unlinkBtn) {
         unlinkBtn.addEventListener('click', async (ev) => {
@@ -192,15 +234,15 @@
           if (!ok) return;
           try {
             await unlinkAssociation(d.id);
-            // maj state en mémoire
             const idx = state.rows.findIndex(x => Number(x.id) === Number(d.id));
             if (idx >= 0) {
               state.rows[idx].association_id = null;
               state.rows[idx].association_title = null;
             }
-            // retire la carte du DOM + refresh compteurs
             card.parentElement && card.parentElement.removeChild(card);
             updateCounts();
+            const total = Array.from(els.board.querySelectorAll('.kanban-drop')).reduce((s,drop)=> s + drop.children.length, 0);
+            if (total === 0) showEmpty(true);
           } catch (err) {
             console.error('unlink failed', err);
             alert("Impossible de retirer l’affectation (voir logs).");
@@ -222,16 +264,24 @@
     updateCounts();
   }
 
+  // Met à jour le badge de la carte (texte + classe) pour la nouvelle étape
+  function updateCardStageUI(card, newStageKey){
+    const badge = card.querySelector('.stage-badge');
+    if (!badge) return;
+    // nettoyer classes badge-*
+    badge.classList.remove(
+      'badge-primary','badge-success','badge-info','badge-warning','badge-secondary','badge-dark','badge-light'
+    );
+    badge.classList.add(stageClass(newStageKey));
+    badge.textContent = stageLabel(newStageKey);
+  }
+
   function updateCounts(){
     STAGES.forEach(st => {
       const box = els.board.querySelector(`[data-count="${CSS.escape(st.key)}"]`);
       const drop = els.board.querySelector(`.kanban-drop[data-stage="${CSS.escape(st.key)}"]`);
       if (box && drop) box.textContent = String(drop.children.length);
     });
-  }
-
-  function stageLabel(key){
-    return (STAGES.find(s => s.key === key)?.label) || key || '';
   }
 
   function patchStage(id, toStage){
@@ -245,21 +295,17 @@
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Retirer l’affectation (unlink association) d’un deal
-  // Tente PATCH /api/deals/<id>/association, sinon fallback PATCH /api/deals/<id>
-  // ─────────────────────────────────────────────────────────────
+  // Retirer l’affectation d’une association d’un deal
   async function unlinkAssociation(id){
-    // endpoint préféré
+    // endpoint dédié si présent
     let res = await fetch(`/api/deals/${encodeURIComponent(id)}/association`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ association_id: null })
     });
-
     if (res.ok) return res.json();
 
-    // fallback générique
+    // fallback PATCH générique
     res = await fetch(`/api/deals/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

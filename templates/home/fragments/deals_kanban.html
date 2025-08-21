@@ -67,5 +67,19 @@
   </div>
 </div>
 
-<div class="kanban-board" id="kanbanBoard"></div>
+<!-- SPINNER au chargement -->
+<div id="kanbanLoading" class="text-center my-4">
+  <div class="spinner-border text-primary"></div>
+  <div class="small text-muted mt-2">Chargement du pipeline…</div>
+</div>
+
+<!-- ÉTAT VIDE -->
+<div id="kanbanEmpty" class="alert alert-light d-none">
+  Aucun deal à afficher.
+</div>
+
+<!-- BOARD -->
+<div class="kanban-board d-none" id="kanbanBoard"></div>
+
+<!-- COMPTEUR -->
 <div class="text-right mt-2"><small class="text-muted" id="dealCount">0 deal(s)</small></div>

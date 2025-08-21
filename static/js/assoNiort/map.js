@@ -3,133 +3,182 @@
   const DEFAULT_CENTER = [46.325, -0.455];
   const DEFAULT_ZOOM   = 12;
 
+  // Couleurs hex Bootstrap stables
+  const GREEN = '#28a745';   // success
+  const RED   = '#dc3545';   // danger
+
   const esc = (window.esc) || function (s) {
     return String(s ?? '')
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
   };
 
-  let smallMap = null;
-  let fullMap  = null;
-  let markersData = null;
+  let smallMap = null, smallLayer = null;
+  let fullMap  = null,  fullLayer  = null;
 
   // ─────────────────────────────────────────────────────────────
-  // Helpers
+  // Normalisation pour matcher /api/assos_geo (coords) ↔ /api/assos (website)
   // ─────────────────────────────────────────────────────────────
-  function normalizeKey(obj) {
-    const t = (obj.title || obj.name || '').toString().trim().toLowerCase();
-    const a = (obj.address || '').toString().trim().toLowerCase();
-    return `${t}|${a}`;
+  function normStr(s) {
+    return String(s || '')
+      .replace(/^maison\s+des\s+associations\s*-\s*/i,'') // ton cas courant
+      .replace(/[’'´`]/g,"'")
+      .replace(/[–—‒-]/g,'-')
+      .replace(/\s+/g,' ')
+      .trim()
+      .toLowerCase();
   }
-  function parseNum(x) {
-    const v = typeof x === 'number' ? x : parseFloat(String(x));
-    return Number.isFinite(v) ? v : null;
+  function normKey(obj) {
+    const t = normStr(obj.title || obj.name);
+    const a = normStr(obj.address);
+    // si l'adresse est vide côté /assos_geo, on matche au titre seul
+    return a ? `${t}|${a}` : t;
+  }
+  function toNum(x) {
+    if (typeof x === 'number' && Number.isFinite(x)) return x;
+    const f = parseFloat(String(x).replace(',', '.'));
+    return Number.isFinite(f) ? f : null;
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Chargement des points
+  // Chargements
   // ─────────────────────────────────────────────────────────────
-  async function loadPoints(){
-    if (markersData) return markersData;
+  async function fetchJSON(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`${url} ${r.status}`);
+    return r.json();
+  }
 
-    // 1) Prend uniquement les enregistrements avec lat/lon via /api/assos_geo
-    let geo = [];
+  async function loadGeo() {
+    // /api/assos_geo : [{title, address, lat, lon}]
+    let rows = [];
     try {
-      const r = await fetch('/api/assos_geo');
-      geo = await r.json();
-      if (!Array.isArray(geo)) geo = [];
-    } catch (_) { geo = []; }
-
-    // 2) Vérifie si cet endpoint expose déjà "website"
-    const hasWebsiteField = geo.length > 0 && Object.prototype.hasOwnProperty.call(geo[0], 'website');
-
-    // 3) Si website absent → enrichir avec /api/assos (clé = title+address)
-    let websiteByKey = null;
-    if (!hasWebsiteField) {
-      try {
-        const r2 = await fetch('/api/assos');
-        const all = await r2.json();
-        if (Array.isArray(all)) {
-          websiteByKey = new Map(
-            all.map(a => [normalizeKey(a), (a.website || '').toString().trim()])
-          );
-        }
-      } catch (_) {}
+      rows = await fetchJSON('/api/assos_geo');
+    } catch (e) {
+      console.error('fetch /api/assos_geo failed:', e);
+      rows = [];
     }
+    // garde uniquement points avec coords numériques
+    return rows
+      .map(r => ({
+        title: r.title || r.name || '',
+        address: r.address || '',
+        lat: toNum(r.lat),
+        lon: toNum(r.lon),
+      }))
+      .filter(r => r.lat !== null && r.lon !== null);
+  }
 
-    // 4) Construit la liste finale
-    markersData = geo.map(g => {
-      const lat = parseNum(g.lat);
-      const lon = parseNum(g.lon);
-      if (lat == null || lon == null) return null;
+  async function loadSitesIndex() {
+    // /api/assos : on construit un index {normKey -> website}
+    let rows = [];
+    try {
+      rows = await fetchJSON('/api/assos');
+    } catch (e) {
+      console.error('fetch /api/assos failed:', e);
+      rows = [];
+    }
+    const map = new Map();
+    for (const a of rows) {
+      const key = normKey(a);
+      const site = (a.website || '').toString().trim();
+      if (key && !map.has(key)) map.set(key, site);
+    }
+    return map;
+  }
 
-      const key = normalizeKey(g);
-      const website = hasWebsiteField
-        ? (g.website || '').toString().trim()
-        : (websiteByKey?.get(key) || '');
-
+  async function loadPointsMerged() {
+    const [geo, sites] = await Promise.all([loadGeo(), loadSitesIndex()]);
+    // fusion
+    const out = geo.map(g => {
+      let site = '';
+      const k1 = normKey(g);
+      if (sites.has(k1)) {
+        site = sites.get(k1);
+      } else {
+        // fallback : match par titre seul si adresse a changé entre endpoints
+        const tOnly = normStr(g.title);
+        if (sites.has(tOnly)) site = sites.get(tOnly);
+      }
       return {
-        title: g.title || g.name || '',
-        address: g.address || '',
-        website,
-        lat, lon
+        title: g.title,
+        address: g.address,
+        website: site,
+        lat: g.lat,
+        lon: g.lon
       };
-    }).filter(Boolean);
-
-    return markersData;
+    });
+    // petit log côté dev
+    if (out.length === 0) {
+      console.warn('Aucun point à afficher (vérifie /api/assos_geo)');
+    } else {
+      const withSite = out.filter(x => x.website).length;
+      console.log(`Points total: ${out.length} | avec site: ${withSite} | sans site: ${out.length-withSite}`);
+    }
+    return out;
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Init PETITE carte (dans la card)
+  // PETITE CARTE
   // ─────────────────────────────────────────────────────────────
   window.initMap = function initMap() {
     const el = document.getElementById('niortMap');
     if (!el) return;
-    if (smallMap) { setTimeout(()=> smallMap.invalidateSize(), 0); return; }
 
-    smallMap = L.map('niortMap', { preferCanvas: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap', maxZoom: 19, crossOrigin: true
-    }).addTo(smallMap);
+    if (!smallMap) {
+      smallMap = L.map('niortMap', { preferCanvas: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap', maxZoom: 19, crossOrigin: true
+      }).addTo(smallMap);
+      smallLayer = L.layerGroup().addTo(smallMap);
+    } else {
+      smallLayer.clearLayers();
+    }
 
-    const markers = L.layerGroup().addTo(smallMap);
-    const canvasRenderer = L.canvas({ padding: 0.5 });
+    const renderer = L.canvas({ padding: 0.5 });
 
-    loadPoints().then(list => {
-      const bounds = L.latLngBounds();
-      list.forEach(a => {
-        const hasSite = !!a.website;
-        const pin = L.circleMarker([a.lat, a.lon], {
-          renderer: canvasRenderer, radius: 7, weight: 1,
-          color: hasSite ? 'green' : 'red',
-          fillColor: hasSite ? 'green' : 'red',
-          fillOpacity: 0.9,
+    loadPointsMerged()
+      .then(list => {
+        const bounds = L.latLngBounds();
+        list.forEach(a => {
+          const hasSite = !!(a.website && a.website.trim());
+          const pin = L.circleMarker([a.lat, a.lon], {
+            renderer,
+            radius: 7,
+            weight: 1,
+            color: hasSite ? GREEN : RED,
+            fillColor: hasSite ? GREEN : RED,
+            fillOpacity: 0.9,
+          });
+
+          const title = esc(a.title);
+          const addr  = esc(a.address);
+          const site  = (a.website || '').toString().trim();
+
+          let html = `<strong>${title}</strong>`;
+          if (addr) html += `<br><small>${addr}</small>`;
+          if (site) {
+            const url = /^https?:\/\//i.test(site) ? site : `http://${site}`;
+            html += `<br><a href="${url}" target="_blank" rel="noopener">Site web</a>`;
+          }
+
+          pin.bindPopup(html);
+          smallLayer.addLayer(pin);
+          bounds.extend([a.lat, a.lon]);
         });
 
-        const title = esc((a.title || '').toString());
-        const addr  = esc((a.address || '').toString().trim());
-        const site  = (a.website || '').toString().trim();
+        if (smallLayer.getLayers().length > 0) smallMap.fitBounds(bounds.pad(0.1));
+        else smallMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-        let html = `<strong>${title}</strong>`;
-        if (addr) html += `<br><small>${addr}</small>`;
-        if (site) {
-          const url = /^https?:\/\//i.test(site) ? site : `http://${site}`;
-          html += `<br><a href="${url}" target="_blank" rel="noopener">Site web</a>`;
-        }
-        pin.bindPopup(html);
-        markers.addLayer(pin);
-        bounds.extend([a.lat, a.lon]);
+        requestAnimationFrame(() => smallMap.invalidateSize());
+      })
+      .catch(e => {
+        console.error('loadPointsMerged failed:', e);
+        smallMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+        requestAnimationFrame(() => smallMap.invalidateSize());
       });
 
-      if (markers.getLayers().length > 0) smallMap.fitBounds(bounds.pad(0.1));
-      else smallMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-      requestAnimationFrame(() => smallMap.invalidateSize());
-    }).catch(()=>{
-      smallMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-      requestAnimationFrame(() => smallMap.invalidateSize());
-    });
-
-    // Bouton pour ouvrir la modale plein écran
+    // Bouton d’ouverture de la modale plein écran
     const btnOpen = document.getElementById('btnOpenMapModal');
     if (btnOpen) btnOpen.addEventListener('click', openModal);
 
@@ -138,58 +187,75 @@
   };
 
   // ─────────────────────────────────────────────────────────────
-  // Modal + GRANDE carte
+  // MODALE PLEIN ÉCRAN
   // ─────────────────────────────────────────────────────────────
   function openModal(){
     $('#mapFullscreenModal').modal('show');
-    $('#mapFullscreenModal').one('shown.bs.modal', function () { buildFullMap(); });
+    $('#mapFullscreenModal').one('shown.bs.modal', function () {
+      buildFullMap();
+    });
   }
 
   async function buildFullMap(){
     const el = document.getElementById('niortMapFull');
     if (!el) return;
-    if (fullMap) { setTimeout(()=> fullMap.invalidateSize(), 0); return; }
 
-    fullMap = L.map('niortMapFull', { preferCanvas: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap', maxZoom: 19, crossOrigin: true
-    }).addTo(fullMap);
+    if (!fullMap) {
+      fullMap = L.map('niortMapFull', { preferCanvas: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap', maxZoom: 19, crossOrigin: true
+      }).addTo(fullMap);
+      fullLayer = L.layerGroup().addTo(fullMap);
+    } else {
+      fullLayer.clearLayers();
+    }
 
-    const markers = L.layerGroup().addTo(fullMap);
-    const canvasRenderer = L.canvas({ padding: 0.5 });
+    const renderer = L.canvas({ padding: 0.5 });
 
-    const list = await loadPoints();
-    const bounds = L.latLngBounds();
-    list.forEach(a => {
-      const hasSite = !!a.website;
-      const pin = L.circleMarker([a.lat, a.lon], {
-        renderer: canvasRenderer, radius: 7, weight: 1,
-        color: hasSite ? 'green' : 'red',
-        fillColor: hasSite ? 'green' : 'red',
-        fillOpacity: 0.9,
+    try {
+      const list = await loadPointsMerged();
+      const bounds = L.latLngBounds();
+
+      list.forEach(a => {
+        const hasSite = !!(a.website && a.website.trim());
+        const pin = L.circleMarker([a.lat, a.lon], {
+          renderer,
+          radius: 7,
+          weight: 1,
+          color: hasSite ? GREEN : RED,
+          fillColor: hasSite ? GREEN : RED,
+          fillOpacity: 0.9,
+        });
+
+        const title = esc(a.title);
+        const addr  = esc(a.address);
+        const site  = (a.website || '').toString().trim();
+
+        let html = `<strong>${title}</strong>`;
+        if (addr) html += `<br><small>${addr}</small>`;
+        if (site) {
+          const url = /^https?:\/\//i.test(site) ? site : `http://${site}`;
+          html += `<br><a href="${url}" target="_blank" rel="noopener">Site web</a>`;
+        }
+
+        pin.bindPopup(html);
+        fullLayer.addLayer(pin);
+        bounds.extend([a.lat, a.lon]);
       });
 
-      const title = esc((a.title || '').toString());
-      const addr  = esc((a.address || '').toString().trim());
-      const site  = (a.website || '').toString().trim();
+      if (fullLayer.getLayers().length > 0) fullMap.fitBounds(bounds.pad(0.1));
+      else fullMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-      let html = `<strong>${title}</strong>`;
-      if (addr) html += `<br><small>${addr}</small>`;
-      if (site) {
-        const url = /^https?:\/\//i.test(site) ? site : `http://${site}`;
-        html += `<br><a href="${url}" target="_blank" rel="noopener">Site web</a>`;
-      }
-      pin.bindPopup(html);
-      markers.addLayer(pin);
-      bounds.extend([a.lat, a.lon]);
-    });
+      requestAnimationFrame(() => fullMap.invalidateSize());
 
-    if (markers.getLayers().length > 0) fullMap.fitBounds(bounds.pad(0.1));
-    else fullMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-    requestAnimationFrame(() => fullMap.invalidateSize());
-
-    const btn = document.getElementById('btnDownloadMapFull');
-    if (btn) btn.addEventListener('click', () => downloadMapPNG(fullMap, el, btn));
+      // Download dans la modale
+      const btn = document.getElementById('btnDownloadMapFull');
+      if (btn) btn.onclick = () => downloadMapPNG(fullMap, el, btn);
+    } catch (e) {
+      console.error('buildFullMap failed:', e);
+      fullMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      requestAnimationFrame(() => fullMap.invalidateSize());
+    }
   }
 
   // ─────────────────────────────────────────────────────────────

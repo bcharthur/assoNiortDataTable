@@ -4,6 +4,9 @@
 {% block content %}
 <div class="container-fluid">
 
+  <!-- KPIs + Map -->
+  {% include 'home/fragments/stats-map-cards.html' %}
+
   <!-- Toolbar (filtres en haut) -->
   <div class="card shadow-sm mb-3">
     <div class="card-body py-2">
@@ -37,9 +40,6 @@
       </div>
     </div>
   </div>
-
-  <!-- KPIs + Map -->
-  {% include 'home/fragments/stats-map-cards.html' %}
 
   <!-- Onglets : Grille / Pipeline -->
   <ul class="nav nav-tabs mt-3" role="tablist">
