@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from Repository.docker_repository import get_snapshot_and_summary, get_host_hardware_info, get_hardware_info_remote
+from Repository.docker_repository import get_snapshot_and_summary, get_hardware_info_remote
 from Repository.hardware_repository import get_hardware_metrics
 
 dashboard_bp = Blueprint('dashboard', __name__)

@@ -1,115 +1,175 @@
-// static/js/datatable.js
-import { formatBytesMBGB } from './utils.js';
+// static/js/docker/datatable.js
+// Regroupe par application: parent = <appli>, enfants = wp_<appli>, db_<appli>
+import { formatBytesBinary } from './utils.js';
 
-const tNum = (x, d = 1) => x.toFixed(d) + ' %';
-
-// stocke les raw rows groupées
-let groupData = {};
-
-// mémorise quels groupes sont ouverts
-const expanded = new Set();
-
-// extrait “bouchaud” de “wp_bouchaud”
-function getGroup(name) {
-  const parts = name.split('_');
-  return parts.length > 1 ? parts.slice(1).join('_') : name;
+function parseTypeAndSite(name) {
+  const m = name.match(/^(wp|db)_(.+)$/i);
+  if (m) return { type: m[1].toLowerCase(), site: m[2] };
+  return { type: 'other', site: name };
 }
 
-// HTML du tableau enfant
-function buildChildHtml(grp) {
-  const list = groupData[grp] || [];
-  return `<table class="table table-sm mb-0">
-    <thead class="thead-light">
-      <tr>
-        <th>Service</th><th>CPU %</th><th>RAM %</th><th>RAM</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${list.map(c => `
-        <tr class="table-light">
-          <td>${c.name}</td>
-          <td>${tNum(c.cpu_pct)}</td>
-          <td>${tNum(c.mem_pct)}</td>
-          <td>${formatBytesMBGB(c.mem_used)} / ${formatBytesMBGB(c.mem_lim)}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>`;
+function groupRowsByApp(rows) {
+  const groups = new Map();
+
+  for (const r of rows) {
+    const { type, site } = parseTypeAndSite(r.name);
+    if (!groups.has(site)) {
+      groups.set(site, {
+        site,
+        children: [],
+        cpu_sum: 0,
+        mem_used_sum: 0,
+        mem_lim_max: 0
+      });
+    }
+    const g = groups.get(site);
+    g.children.push({ ...r, _type: type, _site: site });
+    g.cpu_sum += (r.cpu_pct || 0);
+    g.mem_used_sum += (r.mem_used || 0);
+    g.mem_lim_max = Math.max(g.mem_lim_max, r.mem_lim || 0);
+  }
+
+  const flat = [];
+  for (const [, g] of groups) {
+    const memPct = g.mem_lim_max > 0 ? (g.mem_used_sum / g.mem_lim_max * 100) : 0;
+
+    // Parent (toujours avant ses enfants)
+    flat.push({
+      _isGroup: true,
+      site: g.site,
+      name: g.site,
+      cpu_pct: +g.cpu_sum.toFixed(2),
+      mem_pct: +memPct.toFixed(2),
+      mem_used: g.mem_used_sum,
+      mem_lim: g.mem_lim_max,
+      // colonnes cachées pour le tri "fixe"
+      _sort_site: g.site,
+      _sort_kind: 0,         // 0 = parent, 1 = enfant
+      _sort_type: -1,        // parent avant les types enfants
+      _sort_name: g.site
+    });
+
+    // Enfants triés wp -> db -> other
+    const typeOrder = { wp: 0, db: 1, other: 2 };
+    const kids = [...g.children].sort((a, b) => {
+      const ta = typeOrder[a._type] ?? 2;
+      const tb = typeOrder[b._type] ?? 2;
+      return ta - tb || a.name.localeCompare(b.name);
+    });
+
+    for (const c of kids) {
+      flat.push({
+        _isChild: true,
+        _type: c._type,
+        site: g.site,
+        name: c.name,
+        cpu_pct: c.cpu_pct,
+        mem_pct: c.mem_pct,
+        mem_used: c.mem_used,
+        mem_lim: c.mem_lim,
+        // tri "fixe"
+        _sort_site: g.site,
+        _sort_kind: 1,
+        _sort_type: typeOrder[c._type] ?? 2,
+        _sort_name: c.name
+      });
+    }
+  }
+  return flat;
 }
 
-export function createDashboardTable() {
-  const dt = $('#contTable').DataTable({
-    data: [],                      // on ajoutera les parents plus tard
-    rowId: row => `parent_${row.name}`,
+function renderBadge(type) {
+  if (type === 'wp') return '<span class="badge badge-primary">wp</span>';
+  if (type === 'db') return '<span class="badge badge-secondary">db</span>';
+  return '<span class="badge badge-light text-dark">other</span>';
+}
+
+export function buildDockerGroupedTable(initialRows) {
+  const data = groupRowsByApp(initialRows);
+
+  function renderChevron(_, __, row) {
+    return row._isGroup ? '<span class="ast-chevron" style="cursor:pointer;">▸</span>' : '';
+  }
+
+  function renderName(data, type, row) {
+    if (row._isGroup) return `<strong>${data}</strong>`;
+    const short = (row._type === 'wp' || row._type === 'db')
+      ? row.name.replace(/^(wp|db)_/i, '')
+      : row.name;
+    return `${renderBadge(row._type)} <span class="ml-1">${short}</span>`;
+  }
+
+  const table = $('#contTable').DataTable({
+    data,
+    // 👉 voir toutes les lignes par défaut
+    paging: true,
+    pageLength: -1,
+    lengthMenu: [[-1, 10, 25, 50, 100], ['All', '10', '25', '50', '100']],
+    searching: true,
+    info: true,
+    autoWidth: false,
+    responsive: false,               // important: pas de flèche Responsive
+    order: [],                       // pas d’ordre initial “visible”
+    orderFixed: {                    // tri caché garantissant parent → enfants
+      pre: [
+        [5, 'asc'],  // _sort_site
+        [6, 'asc'],  // _sort_kind (parent=0, enfant=1)
+        [7, 'asc'],  // _sort_type (wp, db, other)
+        [8, 'asc']   // _sort_name
+      ]
+    },
     columns: [
-      {
-        className: 'details-control',
-        orderable: false,
-        data: null,
-        defaultContent: ''         // la cellule cliquable pour expand / collapse
-      },
-      { title: 'Nom',   data: 'name' },
-      { title: 'CPU %', data: 'cpu'  },
-      { title: 'RAM %', data: 'ramp' },
-      { title: 'RAM',   data: 'ram'  }
+      { data: null, orderable: false, className: 'ast-toggle', width: '1%', render: renderChevron },
+      { data: 'name', title: 'Nom', render: renderName, orderable: false },
+      { data: 'cpu_pct', title: 'CPU %', render: d => Number(d||0).toFixed(2), orderable: false },
+      { data: 'mem_pct', title: 'RAM %', render: d => Number(d||0).toFixed(2), orderable: false },
+      { data: 'mem_used', title: 'RAM',   render: (_, __, row) => formatBytesBinary(row.mem_used), orderable: false },
+
+      // colonnes cachées pour le tri fixe
+      { data: '_sort_site', visible: false, searchable: false },
+      { data: '_sort_kind', visible: false, searchable: false },
+      { data: '_sort_type', visible: false, searchable: false },
+      { data: '_sort_name', visible: false, searchable: false }
     ],
-    order: [[1, 'asc']],           // par défaut, tri alphabetique sur la colonne Nom
-    language: {
-      url: 'https://cdn.datatables.net/plug‑ins/1.13.8/i18n/fr‑FR.json'
+    rowCallback: function (row, rowData) {
+      if (rowData._isChild) $(row).addClass('table-sm text-muted');
+    },
+    createdRow: function (row, rowData) {
+      if (rowData._isChild) $(row).hide(); // plié par défaut
     }
   });
 
-  // click sur la chevron (colonne 0) d'un parent
-  $('#contTable tbody').on('click', 'td.details-control', function() {
-    const tr   = $(this).closest('tr');
-    const row  = dt.row(tr);
+  // Toggle parent → affiche/masque uniquement SES enfants (contigus grâce à orderFixed)
+  $('#contTable tbody').on('click', 'td.ast-toggle .ast-chevron', function () {
+    const tr = $(this).closest('tr');
+    const row = table.row(tr);
     const data = row.data();
-    const grp  = data.name;
+    if (!data || !data._isGroup) return;
 
-    if (row.child.isShown()) {
-      row.child.hide();
-      tr.removeClass('shown');
-      expanded.delete(grp);
-    } else {
-      row.child(buildChildHtml(grp)).show();
-      tr.addClass('shown');
-      expanded.add(grp);
+    const isOpen = tr.hasClass('shown');
+    const idx = row.index();
+    let i = idx + 1;
+    while (i < table.rows().count()) {
+      const next = table.row(i).data();
+      if (!next || next._isGroup) break;
+      const $tr = $(table.row(i).node());
+      if (isOpen) $tr.hide(); else $tr.show();
+      i++;
     }
+
+    tr.toggleClass('shown');
+    $(this).text(isOpen ? '▸' : '▾');
   });
 
-  return dt;
+  return table;
 }
 
-export function updateDashboardTable(dt, raw) {
-  // 1) regrouper raw par projet
-  groupData = {};
-  raw.forEach(r => {
-    const grp = getGroup(r.name);
-    (groupData[grp] = groupData[grp] || []).push(r);
-  });
-
-  // 2) ne garder que les parents pour le DataTable
-  const parents = Object.entries(groupData).map(([grp, list]) => {
-    const cpuSum = list.reduce((a,c) => a + c.cpu_pct, 0);
-    const memSum = list.reduce((a,c) => a + c.mem_used, 0);
-    const lim    = list[0].mem_lim || 1;
-    return {
-      name: grp,
-      cpu:  tNum(cpuSum),
-      ramp: tNum(memSum / lim * 100),
-      ram:  `${formatBytesMBGB(memSum)} / ${formatBytesMBGB(lim)}`
-    };
-  });
-
-  // 3) recharger le DataTable (parents uniquement), garder pagination/tri
-  dt.clear().rows.add(parents).draw(false);
-
-  // 4) ré-ouvrir les groupes qui l'étaient
-  expanded.forEach(grp => {
-    const row = dt.row(`#parent_${grp}`);
-    if (row.node()) {
-      row.child(buildChildHtml(grp)).show();
-      $(row.node()).addClass('shown');
-    }
+export function updateGroupedTable(table, newRows) {
+  const data = groupRowsByApp(newRows);
+  table.clear().rows.add(data).draw(false);
+  // replier par défaut après MAJ (simple et sûr)
+  table.rows().every(function () {
+    const d = this.data();
+    if (d && d._isChild) $(this.node()).hide();
   });
 }
