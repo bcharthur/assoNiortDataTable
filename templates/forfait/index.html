@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Forfaits{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+    <h1 class="h3 mb-0">Forfaits</h1>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-success" data-modal-url="{{ url_for('forfait.modal_add') }}">
+        + Ajouter un forfait
+      </button>
+      <form action="{{ url_for('forfait.seed_defaults') }}" method="post">
+        <button type="submit" class="btn btn-sm btn-primary">Créer / Mettre à jour les 3 forfaits par défaut</button>
+      </form>
+    </div>
+  </div>
+
+  <hr>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ 'warning' if category=='danger' else category }} mt-2" role="alert">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if forfaits|length == 0 %}
+    <p class="text-muted">Aucun forfait en base. Cliquez sur “Créer / Mettre à jour…” pour créer Association, Particulier, Professionnel.</p>
+  {% endif %}
+
+  <div class="row g-4">
+    {% for f in forfaits %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start">
+              <h5 class="card-title mb-1">{{ f.name }}</h5>
+              <span class="badge {{ 'bg-success' if f.is_active else 'bg-secondary' }}">
+                {{ 'Actif' if f.is_active else 'Inactif' }}
+              </span>
+            </div>
+            <p class="text-muted mb-2">{{ f.audience|capitalize }}</p>
+
+            <ul class="list-unstyled small mb-3">
+              <li>Maintenance : <strong>{{ 'inclus' if f.maintenance_included else 'non' }}</strong></li>
+              <li>Hébergement : <strong>{{ 'inclus' if f.hosting_included else 'non' }}</strong></li>
+              <li>Sécurité : <strong>{{ 'inclus' if f.security_included else 'non' }}</strong></li>
+              <li>Création sur mesure :
+                <strong>{{ 'GRATUITE' if f.site_creation_free else 'payante' }}</strong>
+                {% if f.site_creation_note %}<small class="text-muted">— {{ f.site_creation_note }}</small>{% endif %}
+              </li>
+              <li>Aides : <strong>{{ 'oui' if f.can_unlock_aid else 'non' }}</strong></li>
+              <li>Intégration IA : <strong>{{ 'oui' if f.ai_integration else 'non' }}</strong></li>
+            </ul>
+
+            <div class="mb-3">
+              <div class="fw-semibold">Abonnement de base :</div>
+              <div class="display-6">{{ "%.2f"|format(f.monthly_base_eur) }} € <small class="text-muted">/ mois</small></div>
+            </div>
+
+            <details class="mb-3">
+              <summary class="small text-muted">Règles d’évolution selon le trafic (JSON)</summary>
+              <pre class="small bg-light p-2 rounded">{{ f.pricing_rules_json or '' }}</pre>
+            </details>
+
+            <div class="d-flex gap-2 mt-auto">
+              <button class="btn btn-outline-secondary btn-sm"
+                      data-modal-url="{{ url_for('forfait.modal_edit', fid=f.id) }}">
+                Éditer
+              </button>
+              <button class="btn btn-outline-danger btn-sm"
+                      data-modal-url="{{ url_for('forfait.modal_delete', fid=f.id) }}">
+                Supprimer
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Hôte des modales -->
+<div id="modalHost"></div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function() {
+  async function openModal(url) {
+    try {
+      const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const html = await r.text();
+      // inject fragment
+      const host = document.getElementById('modalHost');
+      host.innerHTML = html;
+
+      // init BS modal
+      const modalEl = host.querySelector('.modal');
+      const modal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+      modal.show();
+
+      // auto-remove on hidden to keep DOM clean
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        host.innerHTML = '';
+      });
+    } catch (e) {
+      console.error(e);
+      alert('Impossible de charger la fenêtre.');
+    }
+  }
+
+  document.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-modal-url]');
+    if (btn) {
+      ev.preventDefault();
+      openModal(btn.getAttribute('data-modal-url'));
+    }
+  });
+})();
+</script>
+{% endblock %}

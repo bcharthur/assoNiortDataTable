@@ -25,6 +25,7 @@ services:
       SSH_PORT: "2222"
       SSH_USER: astroweb         # votre login
       SSH_KEY_PATH: /home/app/.ssh/id_ed25519
+      SECRET_KEY: "change_me_to_a_long_random_hex"
     volumes:
       - .:/app:ro
       - ./migrations:/app/migrations

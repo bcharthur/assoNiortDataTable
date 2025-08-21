@@ -1,0 +1,85 @@
+<div class="modal fade" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('forfait.update_form', fid=f.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Éditer — {{ f.name }}</h5>
+           <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nom</label>
+              <input type="text" class="form-control" value="{{ f.name }}" disabled>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Audience</label>
+              <input type="text" class="form-control" value="{{ f.audience }}" disabled>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Abonnement de base (€ / mois)</label>
+              <input type="number" step="0.01" min="0" name="monthly_base_eur" class="form-control" value="{{ f.monthly_base_eur }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Note création du site</label>
+              <input type="text" name="site_creation_note" class="form-control" value="{{ f.site_creation_note or '' }}">
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="maintenance_included" id="e_m{{f.id}}" {% if f.maintenance_included %}checked{% endif %}>
+                <label class="form-check-label" for="e_m{{f.id}}">Maintenance incluse</label>
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="hosting_included" id="e_h{{f.id}}" {% if f.hosting_included %}checked{% endif %}>
+                <label class="form-check-label" for="e_h{{f.id}}">Hébergement inclus</label>
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="security_included" id="e_s{{f.id}}" {% if f.security_included %}checked{% endif %}>
+                <label class="form-check-label" for="e_s{{f.id}}">Sécurité incluse</label>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="site_creation_free" id="e_c{{f.id}}" {% if f.site_creation_free %}checked{% endif %}>
+                <label class="form-check-label" for="e_c{{f.id}}">Création gratuite</label>
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="can_unlock_aid" id="e_a{{f.id}}" {% if f.can_unlock_aid %}checked{% endif %}>
+                <label class="form-check-label" for="e_a{{f.id}}">Aides possibles</label>
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="ai_integration" id="e_ai{{f.id}}" {% if f.ai_integration %}checked{% endif %}>
+                <label class="form-check-label" for="e_ai{{f.id}}">Intégration IA</label>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_active" id="e_act{{f.id}}" {% if f.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="e_act{{f.id}}">Activer</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label">Règles (JSON)</label>
+            <textarea class="form-control" name="pricing_rules_json" rows="6">{{ f.pricing_rules_json or '' }}</textarea>
+            <div class="form-text">Laisse vide pour conserver la valeur actuelle.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Annuler</button>
+          <button class="btn btn-success" type="submit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

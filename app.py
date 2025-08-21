@@ -1,4 +1,6 @@
 import os
+import secrets
+
 from flask import Flask, current_app, request
 from flask_socketio import SocketIO
 from sqlalchemy.exc import SQLAlchemyError
@@ -19,6 +21,12 @@ def _on_connect():
 
 def create_app() -> Flask:
     app = Flask(__name__, static_folder="static", template_folder="templates")
+
+    app.config['SECRET_KEY'] = (
+            os.environ.get('SECRET_KEY')
+            or os.environ.get('FLASK_SECRET')
+            or secrets.token_hex(32)
+    )
 
     # ─── Config DB ────────────────────────────────────────────────────────
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
@@ -41,8 +49,11 @@ def create_app() -> Flask:
     from Controller.dashboard_controller   import dashboard_bp
     from Controller.metric_controller      import metrics_bp
     from Controller.docker_controller      import docker_bp
+    from Controller.forfait_controller import forfait_bp
+
     from Repository.association_repository import AssociationRepository
     from Repository.ssh_repository         import SSHRepository
+
     from Service.ssh_service               import SSHService
     from Entity.ssh_server                 import SSHServer
 
@@ -52,6 +63,7 @@ def create_app() -> Flask:
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(metrics_bp)
     app.register_blueprint(docker_bp)
+    app.register_blueprint(forfait_bp)
 
     # ─── Sync data "léger" au premier vrai hit HTTP (pas statique) ──────
     @app.before_request
