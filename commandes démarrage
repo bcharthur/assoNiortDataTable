@@ -48,7 +48,7 @@ docker compose exec db psql -U asso -d asso
   SELECT * FROM associations LIMIT 10;
 
 # === Migrations dans le conteneur web ===
-docker compose exec -e FLASK_APP=app.py web flask db migrate -m "Migration pour metrics"
+docker compose exec -e FLASK_APP=app.py web flask db migrate -m "Migration pour MAJ lat lon asso"
 docker compose exec -e FLASK_APP=app.py web flask db upgrade
 
 # (optionnel) via Alembic CLI
