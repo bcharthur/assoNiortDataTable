@@ -1,69 +1,103 @@
 {# Cartes KPI + carte Leaflet à droite #}
 <div class="row mb-3">
 
-<!-- Répartition (barres %) -->
-<div class="col-xl-3 col-md-4 col-sm-6 mb-3">
-  <div id="barsCard" class="card border-left-primary shadow-sm h-100">
-    <div class="card-body d-flex flex-column p-3 h-100">
-      <h6 class="text-xs fw-bold text-primary text-uppercase mb-2">Répartition (%)</h6>
+  <!-- Répartition (barres %) -->
+  <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+    <div id="barsCard" class="card border-left-primary shadow-sm h-100">
+      <div class="card-body d-flex flex-column p-3 h-100">
+        <h6 class="text-xs fw-bold text-primary text-uppercase mb-2">Répartition (%)</h6>
 
-      <!-- Zone qui prend TOUT l'espace restant -->
-      <div id="barsWrap" class="flex-grow-1 position-relative">
-        <!-- Le canvas remplit barsWrap -->
-        <canvas id="catBars" class="w-100 h-100"></canvas>
+        <div id="barsWrap" class="flex-grow-1 position-relative">
+          <canvas id="catBars" class="w-100 h-100"></canvas>
 
-<!-- Légende en overlay (plein largeur, grille) -->
-<div id="catLegend"
-     class="position-absolute bottom-0 start-0 end-0 small px-2 pb-1">
-</div>
-
+          <!-- Légende une seule ligne, plein largeur -->
+          <div id="catLegend" class="position-absolute bottom-0 start-0 end-0 small px-2 pb-1"></div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Total + Sans site empilés -->
-<div class="col-xl-3 col-md-4 col-sm-6 mb-3">
-  <div id="valuesStack" class="d-flex flex-column h-100">
-    <div class="card border-left-success shadow-sm py-3 text-center mb-2 flex-fill">
-      <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-        Total asso
+  <!-- Total + Sans site empilés -->
+  <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+    <div id="valuesStack" class="d-flex flex-column h-100">
+      <div class="card border-left-success shadow-sm py-3 text-center mb-2 flex-fill">
+        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total asso</div>
+        <div id="countTotal" class="h4 font-weight-bold mb-0">0</div>
       </div>
-      <div id="countTotal" class="h4 font-weight-bold mb-0">0</div>
-    </div>
-    <div class="card border-left-warning shadow-sm py-3 text-center flex-fill">
-      <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-        Sans site
+      <div class="card border-left-warning shadow-sm py-3 text-center flex-fill">
+        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Sans site</div>
+        <div id="countNoSite" class="h4 font-weight-bold mb-0">0</div>
       </div>
-      <div id="countNoSite" class="h4 font-weight-bold mb-0">0</div>
     </div>
   </div>
-</div>
-
 
   <!-- Carte Leaflet -->
   <div class="col-xl-6 col-md-12 mb-3">
     <div class="card shadow-sm h-100">
       <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Carte des associations</h6>
-        <button id="btnDownloadMap" class="btn btn-sm btn-outline-secondary" title="Télécharger la carte PNG">
-          <i class="fas fa-download"></i>
+        <!-- Ouvre la modale BS4 -->
+        <button id="btnOpenMapModal"
+                class="btn btn-sm btn-outline-primary"
+                data-toggle="modal" data-target="#mapModal"
+                title="Agrandir la carte">
+          <i class="fas fa-expand"></i> <span class="d-none d-sm-inline">Agrandir</span>
         </button>
       </div>
 
-      <div class="card shadow-sm mb-4">
-  <div class="card-body p-0" style="height:400px; position:relative">
-    <div id="niortMap" style="width:100%; height:100%"></div>
-
-    <!-- Loader overlay -->
-{#    <div id="mapLoader"#}
-{#         class="d-flex align-items-center justify-content-center position-absolute w-100 h-100 bg-white"#}
-{#         style="opacity:.8; z-index:1000">#}
-{#      <div class="spinner-border text-primary" role="status"></div>#}
-{#    </div>#}
-  </div>
-</div>
+      <!-- La carte remplit la card -->
+      <div id="mapCardBody" class="card-body p-0 d-flex flex-column">
+        <div id="niortMap" class="flex-grow-1 w-100" style="min-height: 300px;"></div>
+      </div>
     </div>
   </div>
+</div>
 
+<!-- ========== MODALE PLEIN ÉCRAN (Bootstrap 4) ========== -->
+<style>
+  /* Plein écran pour Bootstrap 4 */
+  .modal-fullscreen-b4 .modal-dialog {
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .modal-fullscreen-b4 .modal-content {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .modal-fullscreen-b4 .modal-body {
+    padding: 0 !important;
+  }
+  /* La carte occupe toute la hauteur disponible dans la modale */
+  #niortMapModal {
+    width: 100%;
+    height: calc(100vh - 70px); /* header ≃ 56–70px */
+    min-height: 420px;
+  }
+</style>
+
+<div class="modal fade modal-fullscreen-b4" id="mapModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content d-flex flex-column">
+      <div class="modal-header">
+        <h5 class="modal-title">Carte des associations — vue large</h5>
+        <div class="ml-auto d-flex align-items-center">
+          <!-- Télécharger UNIQUEMENT dans la modale -->
+          <button id="btnDownloadMapModal" class="btn btn-sm btn-outline-secondary mr-2" title="Télécharger la carte PNG">
+            <i class="fas fa-download"></i> Télécharger
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-dark" data-dismiss="modal" aria-label="Fermer">
+            <i class="fas fa-times"></i> Fermer
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- La carte modal -->
+        <div id="niortMapModal"></div>
+      </div>
+    </div>
+  </div>
 </div>

@@ -1,102 +1,165 @@
-// static/js/assoNiort/map.js
+// static/js/assoNiort/map.js  (Bootstrap 4.6 compatible)
 (function () {
-  const DEFAULT_CENTER = [46.325, -0.455]; // Niort centre
+  const DEFAULT_CENTER = [46.325, -0.455];
   const DEFAULT_ZOOM   = 12;
 
-  // Appelée depuis static/js/init.js
+  let cachedAssos = null;  // on charge une seule fois
+  let mainMap = null;
+  let modalMap = null;
+
+  // ========= Public (appelée depuis static/js/init.js) =========
   window.initMap = function initMap() {
-    const el = document.getElementById('niortMap');
-    if (!el) return;
+    const mainEl = document.getElementById('niortMap');
+    if (!mainEl) return;
 
-    // ⚠️ Clé: forcer le rendu Canvas pour que leaflet-image capture les points
-    const map = L.map('niortMap', { preferCanvas: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    // 1) Carte principale
+    mainMap = buildLeafletMap('niortMap');
 
-    // IMPORTANT: crossOrigin pour permettre l'export en PNG
+    ensureAssos().then(list => {
+      populateMap(mainMap, list);
+      requestAnimationFrame(() => mainMap.invalidateSize());
+    }).catch(() => {
+      mainMap.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      requestAnimationFrame(() => mainMap.invalidateSize());
+    });
+
+    // 2) Initialiser/rafraîchir la carte modale à l’ouverture (BS4)
+    $('#mapModal').on('shown.bs.modal', function () {
+      // ajuster la hauteur (selon viewport & header)
+      setModalMapHeight();
+
+      if (!modalMap) {
+        modalMap = buildLeafletMap('niortMapModal');
+        ensureAssos().then(list => {
+          populateMap(modalMap, list);
+          // après peinture DOM
+          setTimeout(() => modalMap.invalidateSize(), 0);
+        });
+      } else {
+        setTimeout(() => modalMap.invalidateSize(), 0);
+      }
+    });
+
+    // (optionnel) si tu veux libérer au close :
+    // $('#mapModal').on('hidden.bs.modal', function () { /* garder en cache pour réouverture rapide */ });
+
+    // 3) Bouton Télécharger (dans la modale seulement)
+    const btnDlModal = document.getElementById('btnDownloadMapModal');
+    if (btnDlModal) {
+      btnDlModal.addEventListener('click', () => {
+        if (!modalMap) return;
+        const containerEl = document.getElementById('niortMapModal');
+        downloadMapPNG(modalMap, containerEl, btnDlModal);
+      });
+    }
+
+    // 4) Resize global
+    window.addEventListener('resize', () => {
+      if (mainMap) mainMap.invalidateSize();
+      if ($('#mapModal').hasClass('show') && modalMap) {
+        setModalMapHeight();
+        modalMap.invalidateSize();
+      }
+    }, { passive: true });
+
+    // Helper global si d’autres scripts changent des hauteurs
+    window.invalidateNiortMap = () => {
+      if (mainMap) mainMap.invalidateSize();
+      if ($('#mapModal').hasClass('show') && modalMap) modalMap.invalidateSize();
+    };
+  };
+
+  // ========= Helpers =========
+
+  function setModalMapHeight() {
+    const el = document.getElementById('niortMapModal');
+    const modal = document.getElementById('mapModal');
+    if (!el || !modal) return;
+    const header = modal.querySelector('.modal-header');
+    const headerH = header ? header.getBoundingClientRect().height : 60;
+    const h = Math.max(420, window.innerHeight - headerH);
+    el.style.height = h + 'px';
+  }
+
+  function buildLeafletMap(containerId) {
+    const map = L.map(containerId, { preferCanvas: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19,
       crossOrigin: true
     }).addTo(map);
 
-    const markers = L.layerGroup().addTo(map);
+    map.__markersLayer   = L.layerGroup().addTo(map);
+    map.__canvasRenderer = L.canvas({ padding: 0.5 });
+    return map;
+  }
 
-    // Renderer Canvas dédié (assure le rendu des path sur Canvas)
-    const canvasRenderer = L.canvas({ padding: 0.5 });
-
-    // Helpers popup
-    function labelOf(a)   { return (a.title || a.name || '').toString(); }
-    function addressOf(a) { return (a.address || '').toString().trim(); }
-    function websiteOf(a) { return (a.website || '').toString().trim(); }
-
-    // Charge UNIQUEMENT les assos qui ont déjà lat/lon (aucun remplissage)
-    fetch('/api/assos_geo')
+  function ensureAssos() {
+    if (Array.isArray(cachedAssos)) return Promise.resolve(cachedAssos);
+    return fetch('/api/assos_geo')   // retourne {title,address,lat,lon,(website?)}
       .then(r => r.json())
       .then(list => {
-        const bounds = L.latLngBounds();
+        cachedAssos = Array.isArray(list) ? list : [];
+        return cachedAssos;
+      });
+  }
 
-        for (const a of list) {
-          if (typeof a.lat !== 'number' || typeof a.lon !== 'number') continue;
+  function populateMap(map, list) {
+    const markers = map.__markersLayer;
+    const canvasRenderer = map.__canvasRenderer;
+    markers.clearLayers();
 
-          const hasSite = !!websiteOf(a);
-          // Pins colorées : vert si site, rouge sinon — ⚠️ renderer: canvasRenderer
-          const pin = L.circleMarker([a.lat, a.lon], {
-            renderer: canvasRenderer,
-            radius: 7,
-            weight: 1,
-            color: hasSite ? 'green' : 'red',
-            fillColor: hasSite ? 'green' : 'red',
-            fillOpacity: 0.9,
-          });
+    const bounds = L.latLngBounds();
 
-          const title = escapeHtml(labelOf(a));
-          const addr  = escapeHtml(addressOf(a));
-          const site  = websiteOf(a);
+    for (const a of list) {
+      if (typeof a.lat !== 'number' || typeof a.lon !== 'number') continue;
 
-          let html = `<strong>${title}</strong>`;
-          if (addr) html += `<br><small>${addr}</small>`;
-          if (site) {
-            const url  = site.match(/^https?:\/\//i) ? site : `http://${site}`;
-            html += `<br><a href="${url}" target="_blank" rel="noopener">Site web</a>`;
-          }
+      const hasSite = !!((a.website || '').toString().trim());
+      const pin = L.circleMarker([a.lat, a.lon], {
+        renderer: canvasRenderer,   // Canvas => compatible leaflet-image
+        radius: 7,
+        weight: 1,
+        color: hasSite ? 'green' : 'red',
+        fillColor: hasSite ? 'green' : 'red',
+        fillOpacity: 0.9,
+      });
 
-          pin.bindPopup(html);
-          markers.addLayer(pin);
-          bounds.extend([a.lat, a.lon]);
-        }
+      const title = escapeHtml((a.title || a.name || '').toString());
+      const addr  = escapeHtml((a.address || '').toString().trim());
+      const site  = (a.website || '').toString().trim();
 
-        if (markers.getLayers().length > 0) {
-          map.fitBounds(bounds.pad(0.1));
-        } else {
-          map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-        }
-      })
-      .catch(() => map.setView(DEFAULT_CENTER, DEFAULT_ZOOM));
+      let html = `<strong>${title}</strong>`;
+      if (addr) html += `<br><small>${addr}</small>`;
+      if (site) {
+        const url = site.match(/^https?:\/\//i) ? site : `http://${site}`;
+        html += `<br><a href="${url}" target="_blank" rel="noopener">Site web</a>`;
+      }
+      pin.bindPopup(html);
 
-    // Bouton "Télécharger la carte"
-    const btn = document.getElementById('btnDownloadMap');
-    if (btn) {
-      btn.addEventListener('click', () => downloadMapPNG(map, el, btn));
+      markers.addLayer(pin);
+      bounds.extend([a.lat, a.lon]);
     }
 
-    // petite évasion HTML pour les popups
-    function escapeHtml(s) {
-      return String(s)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+    if (markers.getLayers().length > 0) {
+      map.fitBounds(bounds.pad(0.1));
+    } else {
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
     }
-  };
+  }
 
-  // ─────────────────────────────────────────────────────────────
-  // Export PNG
-  // ─────────────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+
+  // ========= Export PNG (leaflet-image prioritaire, html2canvas en secours) =========
   function downloadMapPNG(map, containerEl, btn) {
     const restoreBtn = disableBtn(btn);
     const filename = `carte_associations_${new Date().toISOString().slice(0,10)}.png`;
 
-    // 1) Priorité: leaflet-image (rendu tuiles + vecteurs Canvas)
     if (window.leafletImage) {
       window.leafletImage(map, function (err, canvas) {
         restoreBtn();
@@ -109,7 +172,6 @@
       return;
     }
 
-    // 2) Fallback: html2canvas (si présent ; nécessite CORS sur tuiles)
     if (window.html2canvas) {
       window.html2canvas(containerEl, {
         useCORS: true,
@@ -126,14 +188,8 @@
       return;
     }
 
-    // 3) Sinon, message d’aide
     restoreBtn();
-    alert(
-      "Pour télécharger la carte, charge la librairie 'leaflet-image' :\n" +
-      "<script src=\"https://unpkg.com/leaflet-image/leaflet-image.js\"></script>\n" +
-      "Ou en fallback 'html2canvas' :\n" +
-      "<script src=\"https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js\"></script>"
-    );
+    alert("Ajoute 'leaflet-image' (prioritaire) ou 'html2canvas' pour capturer la carte.");
   }
 
   function triggerDownload(canvas, filename) {
