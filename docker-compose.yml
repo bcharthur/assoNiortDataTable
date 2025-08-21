@@ -27,9 +27,9 @@ services:
       SSH_KEY_PATH: /home/app/.ssh/id_ed25519
     volumes:
       - .:/app:ro
+      - ./migrations:/app/migrations
       - /var/run/docker.sock:/var/run/docker.sock
-      # monte tout le dossier SSH de votre Windows dans /home/app/.ssh
-      - C:\Users\Arthur\.ssh:/home/app/.ssh:r
+      - "C:\\Users\\Arthur\\.ssh:/home/app/.ssh:ro"
     ports:
       - "8000:8000"
     restart: unless-stopped
