@@ -13,7 +13,9 @@ def geocode():
         pos = GeocodingService.geocode(q)
     except Exception as e:
         current_app.logger.warning("geocode failed for %s: %s", q, e)
-        return jsonify(error="service_unavailable"), 503
+        # Politique demandée: renvoyer 'Non trouvé' plutôt que des erreurs
+        return jsonify({"lat": "Non trouvé", "lon": "Non trouvé"}), 200
     if not pos:
-        return jsonify(error="not_found"), 404
+        # Service n'a rien trouvé → renvoyer 'Non trouvé'
+        return jsonify({"lat": "Non trouvé", "lon": "Non trouvé"}), 200
     return jsonify(pos), 200

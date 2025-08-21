@@ -1,0 +1,42 @@
+# === CPU : nombre de vCPU et % d’utilisation globale (moyenne ~1s) ===
+echo "=== CPU ==="
+echo "vCPUs: $(nproc)"
+awk '
+  BEGIN{
+    # 1ère mesure
+    getline < "/proc/stat"
+    split($0,a)
+    u1=a[2]+a[3]+a[4]            # user+nice+system
+    t1=u1+a[5]+a[6]+a[7]+a[8]    # + idle+iowait+irq+softirq
+    close("/proc/stat")
+    system("sleep 1")
+    # 2ème mesure
+    getline < "/proc/stat"
+    split($0,b)
+    u2=b[2]+b[3]+b[4]
+    t2=u2+b[5]+b[6]+b[7]+b[8]
+    close("/proc/stat")
+    pct=(u2-u1)/(t2-t1)*100
+    printf("CPU usage: %.2f%%\n", pct)
+  }
+'
+
+# === RAM : utilisé / total (bytes + lisible) ===
+echo "=== RAM ==="
+read -r TOTAL USED FREE <<<"$(free -b | awk '/Mem:/ {print $2, $3, $4}')"
+USED_H=$(numfmt --to=iec --suffix=B "$USED")
+TOTAL_H=$(numfmt --to=iec --suffix=B "$TOTAL")
+PCT=$(awk -v u="$USED" -v t="$TOTAL" 'BEGIN{printf "%.2f", (u/t)*100}')
+echo "Mem used: $USED_H / $TOTAL_H ($PCT%)"
+
+# === DISK (/) : free / total + % used ===
+echo "=== DISK ==="
+read -r DEV TOTAL USED AVAIL <<<"$(df -B1 --output=source,size,used,avail / | tail -1)"
+TOTAL_H=$(numfmt --to=iec --suffix=B "$TOTAL")
+AVAIL_H=$(numfmt --to=iec --suffix=B "$AVAIL")
+USED_PCT=$(awk -v tot="$TOTAL" -v av="$AVAIL" 'BEGIN{printf "%.2f", (tot-av)/tot*100}')
+echo "Disk: $AVAIL_H free / $TOTAL_H ($USED_PCT% used)"
+
+# === Conteneurs : CPU% et mémoire (comme ton parseur) ===
+echo "=== DOCKER CONTAINERS ==="
+docker stats --no-stream --format '{{.Name}};{{.CPUPerc}};{{.MemUsage}}' | sort
